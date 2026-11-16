@@ -32,8 +32,21 @@ OCRChangeNode >> change: aChange [
 	change := aChange
 ]
 
+{ #category : 'accessing' }
+OCRChangeNode >> commentable [
+	"What a comment on me is attached to."
+
+	^ change
+]
+
 { #category : 'testing' }
 OCRChangeNode >> hasChange [
+
+	^ true
+]
+
+{ #category : 'testing' }
+OCRChangeNode >> isCommentable [
 
 	^ true
 ]
@@ -43,4 +56,10 @@ OCRChangeNode >> label [
 	"The text shown in the tree, e.g. '+ myMethod' for an added method."
 
 	^ change kindMarker , ' ' , name
+]
+
+{ #category : 'displaying' }
+OCRChangeNode >> showIn: aReviewPresenter [
+
+	aReviewPresenter showChange: change
 ]

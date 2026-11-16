@@ -14,3 +14,15 @@ OCRContainerNode >> hasChange [
 
 	^ false
 ]
+
+{ #category : 'testing' }
+OCRContainerNode >> isCommentable [
+
+	^ false
+]
+
+{ #category : 'displaying' }
+OCRContainerNode >> showIn: aReviewPresenter [
+
+	aReviewPresenter showNothing
+]

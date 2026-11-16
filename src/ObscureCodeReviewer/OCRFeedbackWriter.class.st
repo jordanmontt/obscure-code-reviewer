@@ -32,12 +32,20 @@ OCRFeedbackWriter >> commentedChangesOf: aReview [
 	^ commented
 ]
 
+{ #category : 'private' }
+OCRFeedbackWriter >> commentedTopicsOf: aReview [
+
+	^ aReview guide topics select: [ :each | aReview hasCommentOn: each ]
+]
+
 { #category : 'writing' }
 OCRFeedbackWriter >> feedbackFor: aReview [
+	"General comment, then topic comments in the guide's order, then change comments in tree order."
 
 	^ String streamContents: [ :stream |
 		  self writeHeaderOf: aReview on: stream.
 		  self writeGeneralCommentOf: aReview on: stream.
+		  (self commentedTopicsOf: aReview) do: [ :each | self writeSection: each reference text: (aReview commentOn: each) on: stream ].
 		  (self commentedChangesOf: aReview) do: [ :each |
 			  self writeSection: (self titleOf: each) text: (aReview commentOn: each) on: stream ] ]
 ]

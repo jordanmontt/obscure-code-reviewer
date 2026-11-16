@@ -72,6 +72,13 @@ OCRTreeNode >> initialize [
 	children := OrderedCollection new
 ]
 
+{ #category : 'testing' }
+OCRTreeNode >> isCommentable [
+	"Changes and topics can be commented; sections, packages and unchanged classes cannot."
+
+	^ self subclassResponsibility
+]
+
 { #category : 'displaying' }
 OCRTreeNode >> label [
 	"The text shown in the tree."
@@ -95,6 +102,13 @@ OCRTreeNode >> name: aString [
 OCRTreeNode >> printOn: aStream [
 
 	aStream nextPutAll: self label
+]
+
+{ #category : 'displaying' }
+OCRTreeNode >> showIn: aReviewPresenter [
+	"Ask aReviewPresenter to show what I stand for."
+
+	^ self subclassResponsibility
 ]
 
 { #category : 'enumerating' }

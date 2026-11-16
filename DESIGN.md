@@ -42,7 +42,7 @@ Follows Iceberg's tree shape, without the `src` directory level, split into sect
 
 ### Topics tab (optional, needs a review guide)
 
-The agent groups changes by what they do (e.g. "Optimize parsing"), across packages. The guide is Markdown:
+The agent groups changes by what they do (e.g. "Optimize parsing"), across packages. The guide is Markdown (`OCRGuideParser`):
 
 ```markdown
 # Optimize parsing
@@ -50,26 +50,30 @@ Why: avoid re-scanning the stream for every token.
 - OCRParser>>#nextToken
 - OCRParser class>>#on:
 - OCRToken
+- OCRToken class
 ```
 
-- `#` headings are topics; the text below is the explanation; `- ` lines are changes.
+- `# ` headings are topics; the other lines below are the explanation; `- ` lines are changes. Text before the first topic is ignored.
+- A change is written as in the copied review: `Foo>>#bar`, `Foo class>>#bar`, `Foo` for a class definition and `Foo class` for a class-side definition. Backquotes are ignored and `Foo>>bar` is read as `Foo>>#bar`.
 - A change belongs to exactly one topic. If listed twice, the first topic keeps it.
 - Changes not mentioned go to **"Not covered by any topic"**.
-- Problems (duplicates, items not in the diff) appear in a warnings list and never block the review.
+- Problems (a change in two topics, a change not in the diff) appear as warnings in the Guide tab and never block the review.
+- Selecting a topic shows its explanation in the diff area; a topic can be commented like a change.
 - The guide gets into the image either:
-  - stored by the agent through the MCP: `OCRReviewGuide forRepositoryNamed: 'x' put: '…'`, or
-  - pasted by the user in a "Guide" text box.
-- The tool works fully without a guide.
+  - stored by the agent through the MCP: `OCRReviewGuide forRepositoryNamed: 'x' put: '…'` (kept in memory while the image runs, one guide per repository; storing again replaces it), or
+  - pasted or edited by the user in the **Guide** tab, then **Apply** (which stores it the same way and refreshes).
+- Refresh re-reads the stored guide.
+- The tool works fully without a guide: the Topics tab then has only "Not covered by any topic".
 
 ## Window
 
 ```
-┌ Toolbar: [Refresh] [Copy review] [Edit] [Save] [Cancel]  ┐
-├ Changes tree ──┬ Diff: base │ image ──────────────────────┤
-│ Package        │                                          │
-│  Class         ├ Comment on selected item ────────────────┤
-│   + method     │                                          │
-├ General comment (whole review) ───────────────────────────┤
+┌ Toolbar: [Refresh] [Copy review] [Browse] [Edit] [Save] [Cancel] ┐
+├[Structure][Topics][Guide]┬ Diff: base │ image (or topic text) ─────┤
+│ Package                  │                                         │
+│  Class                   ├ Comment on selected change or topic ────┤
+│   + method               │                                         │
+├ General comment (whole review) ────────────────────────────────────┤
 ```
 
 - Side-by-side diff (`SpDiffPresenter`), old on the left, new on the right.
@@ -87,10 +91,10 @@ For small fixes, the reviewer edits a method without going back to the agent:
 
 ## Comments
 
-- One comment per method or class definition, plus one general comment.
+- One comment per method, class definition or topic, plus one general comment.
 - No line-level comments (write "line 3: …" in the method comment).
 - Kept in memory only, while the window is open.
-- **Refresh** recomputes the diff and keeps comments matched by `Class>>#selector`. Comments whose item disappeared are moved into the general comment, flagged "(item no longer in diff)".
+- **Refresh** recomputes the diff and keeps comments matched by `Class>>#selector`. Comments on topics are kept while the topic is in the guide. Comments whose item disappeared are moved into the general comment, flagged "(item no longer in diff)".
 
 ### Copy review
 
@@ -102,9 +106,14 @@ Review of <repo>, base <short commit id> (<label>)
 ## General
 <general comment>
 
+## Topic: Optimize parsing
+<comment on the topic>
+
 ## Foo>>#bar (modified)
 <comment>
 ```
+
+Order: the general comment, then topics in the guide's order, then changes in Structure tree order.
 
 ## Opening the tool
 

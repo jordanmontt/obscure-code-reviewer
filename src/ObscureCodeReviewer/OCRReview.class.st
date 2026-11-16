@@ -19,7 +19,8 @@ Class {
 		'changes',
 		'comments',
 		'generalComment',
-		'base'
+		'base',
+		'guide'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -73,11 +74,11 @@ OCRReview >> changes [
 ]
 
 { #category : 'comments' }
-OCRReview >> comment: aString on: aChange [
-	"An empty comment removes the comment."
+OCRReview >> comment: aString on: anItem [
+	"anItem is a change or a topic. An empty comment removes the comment."
 
-	aString trimBoth isEmpty ifTrue: [ ^ comments removeKey: aChange reference ifAbsent: [ nil ] ].
-	comments at: aChange reference put: aString
+	aString trimBoth isEmpty ifTrue: [ ^ comments removeKey: anItem reference ifAbsent: [ self ] ].
+	comments at: anItem reference put: aString
 ]
 
 { #category : 'comments' }
@@ -87,10 +88,10 @@ OCRReview >> commentAtReference: aReference [
 ]
 
 { #category : 'comments' }
-OCRReview >> commentOn: aChange [
-	"Answer my comment on aChange, or an empty string."
+OCRReview >> commentOn: anItem [
+	"Answer my comment on anItem (a change or a topic), or an empty string."
 
-	^ comments at: aChange reference ifAbsent: [ '' ]
+	^ comments at: anItem reference ifAbsent: [ '' ]
 ]
 
 { #category : 'comments' }
@@ -119,16 +120,36 @@ OCRReview >> generalComment: aString [
 	generalComment := aString
 ]
 
-{ #category : 'comments' }
-OCRReview >> hasCommentOn: aChange [
+{ #category : 'accessing' }
+OCRReview >> guide [
+	"The topics the agent wrote for these changes (see OCRReviewGuide). Empty when there is none."
 
-	^ comments includesKey: aChange reference
+	^ guide
+]
+
+{ #category : 'accessing' }
+OCRReview >> guide: aGuide [
+
+	guide := aGuide
+]
+
+{ #category : 'topics' }
+OCRReview >> guideWarnings [
+
+	^ (OCRTopicTreeBuilder changes: changes guide: guide) warnings
+]
+
+{ #category : 'comments' }
+OCRReview >> hasCommentOn: anItem [
+
+	^ comments includesKey: anItem reference
 ]
 
 { #category : 'refreshing' }
-OCRReview >> includesChangeReferenced: aReference [
+OCRReview >> includesItemReferenced: aReference [
+	"A change or a topic."
 
-	^ changes anySatisfy: [ :each | each reference = aReference ]
+	^ (changes anySatisfy: [ :each | each reference = aReference ]) or: [ guide includesTopicReferenced: aReference ]
 ]
 
 { #category : 'initialization' }
@@ -136,7 +157,8 @@ OCRReview >> initialize [
 
 	super initialize.
 	comments := Dictionary new.
-	generalComment := ''
+	generalComment := ''.
+	guide := OCRReviewGuide empty
 ]
 
 { #category : 'testing' }
@@ -169,12 +191,19 @@ OCRReview >> structuralTree [
 
 { #category : 'refreshing' }
 OCRReview >> takeCommentsFrom: aReview [
-	"Keep the comments of aReview, an older review of the same repository.
-	Comments on items that are no longer in my changes are moved into my general comment, so nothing is lost."
+	"Keep the comments of aReview, an older review of the same repository. Set my guide first.
+	Comments on changes or topics that I no longer have are moved into my general comment, so nothing is lost."
 
 	generalComment := aReview generalComment.
 	aReview commentedReferences do: [ :reference |
-		(self includesChangeReferenced: reference)
+		(self includesItemReferenced: reference)
 			ifTrue: [ comments at: reference put: (aReview commentAtReference: reference) ]
 			ifFalse: [ self addLostComment: (aReview commentAtReference: reference) on: reference ] ]
+]
+
+{ #category : 'topics' }
+OCRReview >> topicTree [
+	"Answer my changes grouped by the topics of my guide."
+
+	^ (OCRTopicTreeBuilder changes: changes guide: guide) tree
 ]
