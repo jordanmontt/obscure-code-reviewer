@@ -18,6 +18,15 @@ Class {
 }
 
 { #category : 'instance creation' }
+OCRIcebergReader class >> baseChoicesOfRepositoryNamed: aString [
+
+	| repository reader |
+	repository := self repositoryNamed: aString.
+	reader := self new.
+	^ OCRBaseChoices default: (reader defaultBaseOf: repository) branchNames: (reader branchNamesToSplitFromIn: repository)
+]
+
+{ #category : 'instance creation' }
 OCRIcebergReader class >> repositoryNamed: aString [
 
 	^ IceRepository registry detect: [ :each | each name = aString ]
@@ -36,6 +45,24 @@ OCRIcebergReader class >> reviewOfRepositoryNamed: aString [
 OCRIcebergReader class >> reviewOfRepositoryNamed: aString against: aBase [
 
 	^ self new reviewOf: (self repositoryNamed: aString) against: aBase
+]
+
+{ #category : 'instance creation' }
+OCRIcebergReader class >> reviewableRepositoryNames [
+	"The repositories whose changes can be reviewed: those with a local checkout and loaded packages."
+
+	^ ((IceRepository registry select: [ :each | each isValid and: [ each loadedPackages notEmpty ] ]) collect: [ :each | each name ])
+		  sorted
+]
+
+{ #category : 'bases' }
+OCRIcebergReader >> branchNamesToSplitFromIn: aRepository [
+	"Local and remote branch names, without the current branch: splitting from itself is the last commit."
+
+	| names |
+	names := aRepository localBranchNames , aRepository remoteBranchNames.
+	aRepository head isBranch ifFalse: [ ^ names ].
+	^ names copyWithout: aRepository branchName
 ]
 
 { #category : 'reading' }
@@ -83,8 +110,9 @@ OCRIcebergReader >> classSideVariablesOf: anOperation [
 
 { #category : 'bases' }
 OCRIcebergReader >> defaultBaseOf: aRepository [
-	"See OCRDefaultBaseRule. Never fails: it falls back to the last commit."
+	"See OCRDefaultBaseRule. Never fails: it falls back to the last commit, also when no branch is checked out."
 
+	aRepository head isBranch ifFalse: [ ^ OCRLastCommitBase new ].
 	^ OCRDefaultBaseRule new
 		  currentBranchName: aRepository branchName;
 		  localBranchNames: aRepository localBranchNames;

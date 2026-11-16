@@ -19,8 +19,9 @@ Default base (`OCRDefaultBaseRule`). It never fails: when nothing better fits, i
 | On the main branch, with an upstream | split from its upstream (e.g. `origin/main`) | everything not pushed yet |
 | On the main branch, never pushed | last commit | uncommitted changes |
 | No `main` and no `master` | last commit | uncommitted changes |
+| No branch checked out (detached HEAD) | last commit | uncommitted changes |
 
-The window title always shows the repository and the base used, e.g. `base: 8808718 (split from origin/main)`. The picker (step 6) will let the user choose another base.
+The window title always shows the repository and the base used, e.g. `base: 8808718 (split from origin/main)`. The picker lets the user choose another base.
 
 Not supported: reviewing commit by commit. Picking an arbitrary base commit may come later.
 
@@ -108,8 +109,10 @@ Review of <repo>, base <short commit id> (<label>)
 ## Opening the tool
 
 - Playground: `(OCRReviewPresenter onRepositoryNamed: 'my-project') open`
-- World menu: **Browse → Obscure Code Reviewer** (next to Playground), opening a picker.
-- Picker: list of Iceberg repositories that have a local checkout and loaded packages; base choice; `[Open review]`. `origin/HEAD` is never offered as a branch.
+- World menu: **Browse → Obscure Code Reviewer** (below Playground) opens the picker, a dialog (`OCRPickerPresenter`):
+  - **Repository:** the Iceberg repositories with a local checkout and loaded packages.
+  - **Compare with:** the default base first, marked "(default)", then the last commit, then the split point from each local and remote branch other than the current one (`OCRBaseChoices`). `origin/HEAD` is never offered.
+  - **Open review** opens the review window; **Cancel** closes the dialog.
 
 ## Code organization
 
