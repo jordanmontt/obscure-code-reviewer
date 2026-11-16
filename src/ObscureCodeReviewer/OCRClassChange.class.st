@@ -9,6 +9,20 @@ Class {
 	#tag : 'Model'
 }
 
+{ #category : 'image' }
+OCRClassChange >> browse [
+	"Not tested: it opens a window."
+
+	^ self classInImage browse
+]
+
+{ #category : 'image' }
+OCRClassChange >> classInImage [
+	"The class in the image. Not tested: it reads the live system."
+
+	^ self class environment classNamed: className
+]
+
 { #category : 'testing' }
 OCRClassChange >> isClassChange [
 

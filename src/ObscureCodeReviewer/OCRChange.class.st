@@ -62,6 +62,13 @@ OCRChange >> beExtension [
 	isExtension := true
 ]
 
+{ #category : 'image' }
+OCRChange >> browse [
+	"Open the System Browser on me. Only valid when #isInImage is true."
+
+	^ self subclassResponsibility
+]
+
 { #category : 'accessing' }
 OCRChange >> className [
 
@@ -104,9 +111,23 @@ OCRChange >> isClassChange [
 ]
 
 { #category : 'testing' }
+OCRChange >> isEditable [
+	"Whether the reviewer can edit me by hand in the review window."
+
+	^ false
+]
+
+{ #category : 'testing' }
 OCRChange >> isExtension [
 
 	^ isExtension
+]
+
+{ #category : 'testing' }
+OCRChange >> isInImage [
+	"Whether my method or class is in the image, so it can be browsed. A removed one is not."
+
+	^ self isRemoval not
 ]
 
 { #category : 'testing' }

@@ -59,7 +59,7 @@ Why: avoid re-scanning the stream for every token.
 ## Window
 
 ```
-┌ Toolbar: [Refresh] [Copy review]                         ┐
+┌ Toolbar: [Refresh] [Copy review] [Edit] [Save] [Cancel]  ┐
 ├ Changes tree ──┬ Diff: base │ image ──────────────────────┤
 │ Package        │                                          │
 │  Class         ├ Comment on selected item ────────────────┤
@@ -69,6 +69,16 @@ Why: avoid re-scanning the stream for every token.
 
 - Side-by-side diff (`SpDiffPresenter`), old on the left, new on the right.
 - Items with a comment are marked in the tree.
+
+## Editing by hand
+
+For small fixes, the reviewer edits a method without going back to the agent:
+
+- **Edit** replaces the diff with a code editor holding the method's source in the image.
+- **Save** (or Cmd+S) compiles it, keeping its protocol, then refreshes the review (comments and selection kept). A compile error is shown in the editor, which stays open.
+- **Cancel** goes back to the diff without saving.
+- While editing, the tree and Refresh are disabled: Save or Cancel first.
+- Only added and modified methods can be edited. Removed methods are not in the image; class definitions are edited in the System Browser.
 
 ## Comments
 
@@ -116,11 +126,12 @@ Review of <repo>, base <short commit id> (<label>)
 1. Skeleton: model, Iceberg reader (base = HEAD), window with tree and diff, opened from Playground.
 2. Comments, general comment, Copy review, tree markers.
 3. Refresh keeping comments.
-4. Branch split-point base, with the `main` / `origin/main` default.
-5. Picker and world menu entry.
-6. Topics: guide parser, guide store, paste box, warnings.
-7. README for Pharo developers: clear and straight to the point, including the branch caveat.
-8. Ideas from the CodeReview tool (`github://guillep/pharo-review`): Reviewed marks, links from moved code to where it came from, and line counts.
+4. Edit added and modified methods by hand in the review window.
+5. Branch split-point base, with the `main` / `origin/main` default.
+6. Picker and world menu entry.
+7. Topics: guide parser, guide store, paste box, warnings.
+8. README for Pharo developers: clear and straight to the point, including the branch caveat.
+9. Ideas from the CodeReview tool (`github://guillep/pharo-review`): Reviewed marks, links from moved code to where it came from, and line counts.
 
 ## Process
 

@@ -12,10 +12,46 @@ Class {
 	#tag : 'Model'
 }
 
+{ #category : 'image' }
+OCRMethodChange >> browse [
+	"Not tested: it opens a window."
+
+	^ self methodInImage browse
+]
+
+{ #category : 'image' }
+OCRMethodChange >> compileInImage: aString notifying: aRequestor [
+	"Compile aString in my method's class, keeping its protocol. Answer whether it compiled;
+	when it did not, aRequestor (the code editor) shows the error. Not tested: it changes the live system."
+
+	| method |
+	method := self methodInImage.
+	^ (method methodClass
+		   compile: aString
+		   classified: method protocolName
+		   withStamp: DateAndTime now
+		   notifying: aRequestor
+		   logSource: true) notNil
+]
+
+{ #category : 'testing' }
+OCRMethodChange >> isEditable [
+	"A removed method is not in the image any more, so there is nothing to edit."
+
+	^ self isRemoval not
+]
+
 { #category : 'testing' }
 OCRMethodChange >> isMethodChange [
 
 	^ true
+]
+
+{ #category : 'image' }
+OCRMethodChange >> methodInImage [
+	"The method in the image. Not tested: it reads the live system."
+
+	^ (self class environment classNamed: className) >> selector
 ]
 
 { #category : 'displaying' }

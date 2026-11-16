@@ -85,6 +85,25 @@ OCRChangeTest >> testMethodReferenceIsClassAndSelector [
 ]
 
 { #category : 'tests' }
+OCRChangeTest >> testOnlyAddedAndModifiedMethodsAreEditable [
+
+	self assert: OCRMethodChange addition isEditable.
+	self assert: OCRMethodChange modification isEditable.
+	self deny: OCRMethodChange removal isEditable.
+	self deny: OCRClassChange modification isEditable
+]
+
+{ #category : 'tests' }
+OCRChangeTest >> testOnlyChangesStillInImageCanBeBrowsed [
+
+	self assert: OCRMethodChange addition isInImage.
+	self assert: OCRMethodChange modification isInImage.
+	self deny: OCRMethodChange removal isInImage.
+	self assert: OCRClassChange modification isInImage.
+	self deny: OCRClassChange removal isInImage
+]
+
+{ #category : 'tests' }
 OCRChangeTest >> testSourcesAreEmptyByDefault [
 
 	| change |
