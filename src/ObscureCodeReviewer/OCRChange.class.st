@@ -141,6 +141,15 @@ OCRChange >> kind: aSymbol [
 ]
 
 { #category : 'displaying' }
+OCRChange >> kindDescription [
+	"How my kind is written in review feedback."
+
+	self isAddition ifTrue: [ ^ 'added' ].
+	self isRemoval ifTrue: [ ^ 'removed' ].
+	^ 'modified'
+]
+
+{ #category : 'displaying' }
 OCRChange >> kindMarker [
 
 	self isAddition ifTrue: [ ^ '+' ].

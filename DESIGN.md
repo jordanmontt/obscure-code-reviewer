@@ -26,12 +26,14 @@ Not supported: reviewing commit by commit. Picking an arbitrary base commit may 
 
 ### Structural tab (always available)
 
-Follows Iceberg's tree shape, without the `src` directory level:
+Follows Iceberg's tree shape, without the `src` directory level, split into sections:
 
+- sections **Code**, **Tests** (package name contains `-Test`) and **Baseline** (package name starts with `BaselineOf`); empty sections are hidden
 - package → class (and `Foo class` for class-side) → method
+- icons show what each node is: section, package, class, extension, method
 - extension methods under their own node in the package
 - a changed class definition or class comment is the class node itself
-- each item is marked as added, modified, or removed
+- each item is marked as added (`+`), modified (`~`), or removed (`-`); added and removed items are also colored with the current theme's success and danger text colors, so dark and custom themes work
 
 ### Topics tab (optional, needs a review guide)
 

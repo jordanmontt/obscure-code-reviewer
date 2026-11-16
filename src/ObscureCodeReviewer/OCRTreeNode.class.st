@@ -1,7 +1,9 @@
 "
 I am a node of the changes tree shown in the review window.
 
-I have a name and children. When I represent a changed item, I also hold its OCRChange. A class node can hold a change too, when its class definition changed.
+I have a name, an icon name and children. When I represent a changed item, I also hold its OCRChange. A class node can hold a change too, when its class definition changed.
+
+OCRStructuralTreeBuilder creates me.
 "
 Class {
 	#name : 'OCRTreeNode',
@@ -9,7 +11,8 @@ Class {
 	#instVars : [
 		'name',
 		'children',
-		'change'
+		'change',
+		'iconName'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -17,18 +20,18 @@ Class {
 }
 
 { #category : 'instance creation' }
-OCRTreeNode class >> forChange: aChange [
-
-	^ (self named: aChange name)
-		  change: aChange;
-		  yourself
-]
-
-{ #category : 'instance creation' }
 OCRTreeNode class >> named: aString [
 
 	^ self new
 		  name: aString;
+		  yourself
+]
+
+{ #category : 'instance creation' }
+OCRTreeNode class >> named: aString iconName: aSymbol [
+
+	^ (self named: aString)
+		  iconName: aSymbol;
 		  yourself
 ]
 
@@ -62,6 +65,19 @@ OCRTreeNode >> hasChange [
 	^ change notNil
 ]
 
+{ #category : 'accessing' }
+OCRTreeNode >> iconName [
+	"The name of the icon shown in the tree, e.g. #class."
+
+	^ iconName
+]
+
+{ #category : 'accessing' }
+OCRTreeNode >> iconName: aSymbol [
+
+	iconName := aSymbol
+]
+
 { #category : 'initialization' }
 OCRTreeNode >> initialize [
 
@@ -93,4 +109,12 @@ OCRTreeNode >> name: aString [
 OCRTreeNode >> printOn: aStream [
 
 	aStream nextPutAll: self label
+]
+
+{ #category : 'enumerating' }
+OCRTreeNode >> withAllChildrenDo: aBlock [
+	"Evaluate aBlock with me and then with all my children, in tree order."
+
+	aBlock value: self.
+	children do: [ :each | each withAllChildrenDo: aBlock ]
 ]

@@ -1,12 +1,14 @@
 "
-I am a code review: the changes between a base commit and the image, for one repository.
+I am a code review: the changes between a base commit and the image, for one repository, and the reviewer's comments on them.
 
-I know how to organize my changes for the review window. See #structuralTree.
+Comments are attached to changes by their reference (e.g. 'MyClass>>#myMethod'). There is also one general comment for the whole review.
 
-	OCRReview
+	review := OCRReview
 		repositoryName: 'my-project'
 		baseLabel: 'abc1234 (last commit)'
-		changes: someChanges
+		changes: someChanges.
+	review comment: 'Please rename this' on: aChange.
+	review feedback ""Markdown, ready to paste to the agent""
 "
 Class {
 	#name : 'OCRReview',
@@ -14,7 +16,9 @@ Class {
 	#instVars : [
 		'repositoryName',
 		'baseLabel',
-		'changes'
+		'changes',
+		'comments',
+		'generalComment'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -40,35 +44,58 @@ OCRReview >> changes [
 	^ changes
 ]
 
-{ #category : 'structural tree' }
-OCRReview >> groupNodeNamed: aGroupName in: someChanges [
-	"A group is a class, a class side, or the extension methods of a class."
+{ #category : 'comments' }
+OCRReview >> comment: aString on: aChange [
+	"An empty comment removes the comment."
 
-	| groupChanges node methodChanges |
-	groupChanges := someChanges select: [ :each | each groupName = aGroupName ].
-	node := OCRTreeNode named: aGroupName.
-	groupChanges detect: [ :each | each isClassChange ] ifFound: [ :classChange | node change: classChange ].
-	methodChanges := groupChanges select: [ :each | each isMethodChange ].
-	(methodChanges asSortedCollection: [ :a :b | a selector <= b selector ]) do: [ :each |
-		node addChild: (OCRTreeNode forChange: each) ].
-	^ node
+	aString trimBoth isEmpty ifTrue: [ ^ comments removeKey: aChange reference ifAbsent: [ nil ] ].
+	comments at: aChange reference put: aString
+]
+
+{ #category : 'comments' }
+OCRReview >> commentOn: aChange [
+	"Answer my comment on aChange, or an empty string."
+
+	^ comments at: aChange reference ifAbsent: [ '' ]
+]
+
+{ #category : 'feedback' }
+OCRReview >> feedback [
+	"Answer my comments as Markdown, ready to paste to the agent."
+
+	^ OCRFeedbackWriter new feedbackFor: self
+]
+
+{ #category : 'comments' }
+OCRReview >> generalComment [
+
+	^ generalComment
+]
+
+{ #category : 'comments' }
+OCRReview >> generalComment: aString [
+
+	generalComment := aString
+]
+
+{ #category : 'comments' }
+OCRReview >> hasCommentOn: aChange [
+
+	^ comments includesKey: aChange reference
+]
+
+{ #category : 'initialization' }
+OCRReview >> initialize [
+
+	super initialize.
+	comments := Dictionary new.
+	generalComment := ''
 ]
 
 { #category : 'testing' }
 OCRReview >> isEmpty [
 
 	^ changes isEmpty
-]
-
-{ #category : 'structural tree' }
-OCRReview >> packageNodeNamed: aPackageName [
-
-	| packageChanges node |
-	packageChanges := changes select: [ :each | each packageName = aPackageName ].
-	node := OCRTreeNode named: aPackageName.
-	(self sortedNamesOf: packageChanges by: [ :each | each groupName ]) do: [ :groupName |
-		node addChild: (self groupNodeNamed: groupName in: packageChanges) ].
-	^ node
 ]
 
 { #category : 'accessing' }
@@ -86,14 +113,8 @@ OCRReview >> setRepositoryName: aRepositoryName baseLabel: aBaseLabel changes: s
 ]
 
 { #category : 'structural tree' }
-OCRReview >> sortedNamesOf: someChanges by: aBlock [
-
-	^ (someChanges collect: aBlock as: Set) asSortedCollection asArray
-]
-
-{ #category : 'structural tree' }
 OCRReview >> structuralTree [
-	"Answer my changes as tree nodes: package > class > method, sorted by name."
+	"Answer my changes as tree nodes: section > package > class > method."
 
-	^ (self sortedNamesOf: changes by: [ :each | each packageName ]) collect: [ :packageName | self packageNodeNamed: packageName ]
+	^ OCRStructuralTreeBuilder new treeFor: changes
 ]

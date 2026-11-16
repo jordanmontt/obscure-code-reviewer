@@ -1,5 +1,9 @@
 "
-I am the review window: a tree of changes on the left and a side-by-side diff (base | image) on the right.
+I am the review window:
+- a tree of changes on the left,
+- a side-by-side diff (base | image) and a comment box for the selected change on the right,
+- a general comment at the bottom,
+- a button to copy all comments as Markdown, ready to paste to the agent.
 
 	(OCRReviewPresenter onRepositoryNamed: 'my-project') open
 "
@@ -9,7 +13,10 @@ Class {
 	#instVars : [
 		'review',
 		'changesTree',
-		'diff'
+		'diff',
+		'commentText',
+		'generalCommentText',
+		'copyButton'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -22,36 +29,108 @@ OCRReviewPresenter class >> onRepositoryNamed: aString [
 	^ self on: (OCRIcebergReader reviewOfUncommittedChangesInRepositoryNamed: aString)
 ]
 
+{ #category : 'actions' }
+OCRReviewPresenter >> changeOf: aNode [
+	"Answer the change of aNode, or nil when nothing or a container node is selected."
+
+	aNode ifNil: [ ^ nil ].
+	^ aNode change
+]
+
+{ #category : 'layout' }
+OCRReviewPresenter >> changesLayout [
+	"The tree on the left; the diff and the comment of the selected change on the right."
+
+	^ SpPanedLayout newLeftToRight
+		  positionOfSlider: 30 percent;
+		  add: changesTree;
+		  add: (SpPanedLayout newTopToBottom
+			   positionOfSlider: 70 percent;
+			   add: diff;
+			   add: commentText;
+			   yourself);
+		  yourself
+]
+
+{ #category : 'displaying' }
+OCRReviewPresenter >> colorFor: aNode [
+	"Colors come from the current theme, so they also work with dark and custom themes."
+
+	aNode hasChange ifFalse: [ ^ self theme textColor ].
+	aNode change isAddition ifTrue: [ ^ self theme successTextColor ].
+	aNode change isRemoval ifTrue: [ ^ self theme dangerTextColor ].
+	^ self theme textColor
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> commentChanged: aString [
+
+	| change |
+	change := self changeOf: changesTree selectedItem.
+	change ifNil: [ ^ self ].
+	review comment: aString on: change.
+	changesTree refresh
+]
+
 { #category : 'initialization' }
 OCRReviewPresenter >> connectPresenters [
 
-	changesTree whenSelectedItemChangedDo: [ :node | self showChangeOf: node ]
+	changesTree whenSelectedItemChangedDo: [ :node | self showNode: node ].
+	commentText whenTextChangedDo: [ :text | self commentChanged: text asString ].
+	generalCommentText whenTextChangedDo: [ :text | review generalComment: text asString ]
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> copyReview [
+
+	Clipboard clipboardText: review feedback informing: 'Review copied to the clipboard'
 ]
 
 { #category : 'layout' }
 OCRReviewPresenter >> defaultLayout [
 
-	^ SpPanedLayout newLeftToRight
-		  positionOfSlider: 30 percent;
-		  add: changesTree;
-		  add: diff;
+	^ SpBoxLayout newTopToBottom
+		  add: (SpBoxLayout newLeftToRight
+			   add: copyButton expand: false;
+			   yourself)
+		  expand: false;
+		  add: (SpPanedLayout newTopToBottom
+			   positionOfSlider: 80 percent;
+			   add: self changesLayout;
+			   add: generalCommentText;
+			   yourself);
 		  yourself
 ]
 
 { #category : 'initialization' }
 OCRReviewPresenter >> initializePresenters [
 
+	copyButton := self newButton
+		              label: 'Copy review';
+		              icon: (self iconNamed: #smallCopy);
+		              help: 'Copy all comments as Markdown, ready to paste to the agent';
+		              action: [ self copyReview ];
+		              yourself.
 	changesTree := self newTree
 		               roots: review structuralTree;
 		               children: [ :node | node children ];
-		               display: [ :node | node label ];
+		               display: [ :node | self labelFor: node ];
+		               displayIcon: [ :node | self iconNamed: node iconName ];
+		               displayColor: [ :node | self colorFor: node ];
 		               expandAll;
 		               yourself.
 	diff := self newDiff
 		        showOptions: false;
 		        leftLabel: 'Base';
 		        rightLabel: 'Image';
-		        yourself
+		        yourself.
+	commentText := self newText
+		               placeholder: 'Comment on the selected change';
+		               enabled: false;
+		               yourself.
+	generalCommentText := self newText
+		                      placeholder: 'General comment on the whole review';
+		                      yourself
 ]
 
 { #category : 'initialization' }
@@ -60,6 +139,14 @@ OCRReviewPresenter >> initializeWindow: aWindowPresenter [
 	aWindowPresenter
 		title: 'Obscure Code Reviewer - ' , review repositoryName , ' - base: ' , review baseLabel;
 		initialExtent: 1100 @ 700
+]
+
+{ #category : 'displaying' }
+OCRReviewPresenter >> labelFor: aNode [
+	"Commented changes are marked, so the reviewer sees what is already done."
+
+	(aNode hasChange and: [ review hasCommentOn: aNode change ]) ifTrue: [ ^ aNode label , '   [commented]' ].
+	^ aNode label
 ]
 
 { #category : 'initialization' }
@@ -79,4 +166,20 @@ OCRReviewPresenter >> showChangeOf: aNode [
 	diff
 		leftText: aNode change oldSource;
 		rightText: aNode change newSource
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> showCommentOf: aNode [
+
+	| change |
+	change := self changeOf: aNode.
+	commentText enabled: change notNil.
+	commentText text: (change ifNil: [ '' ] ifNotNil: [ review commentOn: change ])
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> showNode: aNode [
+
+	self showChangeOf: aNode.
+	self showCommentOf: aNode
 ]
