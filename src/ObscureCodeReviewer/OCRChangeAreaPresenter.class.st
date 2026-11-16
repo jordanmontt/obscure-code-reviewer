@@ -1,6 +1,7 @@
 "
 I am the right side of the review window. I show one of:
 - the diff of the selected change (base | image), with what the guide says about it above;
+- a Markdown file, rendered or as a diff (see OCRMarkdownFilePresenter);
 - a binary file (see OCRBinaryFilePresenter);
 - the explanation of the selected topic;
 - the code editor, while the reviewer edits a method by hand (see #startEditing:).
@@ -14,7 +15,8 @@ Class {
 		'topicText',
 		'notesText',
 		'binaryFilePresenter',
-		'isEditing'
+		'isEditing',
+		'markdownPresenter'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -44,6 +46,7 @@ OCRChangeAreaPresenter >> initializePresenters [
 		             beNotEditable;
 		             yourself.
 	binaryFilePresenter := self instantiate: OCRBinaryFilePresenter.
+	markdownPresenter := self instantiate: OCRMarkdownFilePresenter.
 	isEditing := false.
 	self layout: (SpBoxLayout newTopToBottom
 		 add: diff;
@@ -93,6 +96,13 @@ OCRChangeAreaPresenter >> showDiffFrom: anOldSource to: aNewSource [
 	diff
 		leftText: anOldSource;
 		rightText: aNewSource
+]
+
+{ #category : 'showing' }
+OCRChangeAreaPresenter >> showMarkdownFrom: anOldSource to: aNewSource [
+
+	markdownPresenter showFrom: anOldSource to: aNewSource.
+	self layout add: markdownPresenter
 ]
 
 { #category : 'showing' }

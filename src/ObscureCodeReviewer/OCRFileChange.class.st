@@ -36,7 +36,7 @@ OCRFileChange class >> isText: someBytes [
 
 { #category : 'instance creation' }
 OCRFileChange class >> kind: aSymbol path: aPath oldBytes: someOldBytes newBytes: someNewBytes [
-	"A file that is text on both sides shows a diff; any other file is an OCRBinaryFileChange.
+	"A file that is text on both sides shows a diff, rendered for Markdown (OCRMarkdownFileChange); any other file is an OCRBinaryFileChange.
 	The bytes are empty on the side where the file does not exist."
 
 	((self isText: someOldBytes) and: [ self isText: someNewBytes ]) ifFalse: [
@@ -45,12 +45,21 @@ OCRFileChange class >> kind: aSymbol path: aPath oldBytes: someOldBytes newBytes
 			  path: aPath;
 			  setOldBytes: someOldBytes newBytes: someNewBytes;
 			  yourself ].
-	^ self new
+	^ (self textFileClassFor: aPath) new
 		  kind: aSymbol;
 		  path: aPath;
 		  oldSource: someOldBytes utf8Decoded;
 		  newSource: someNewBytes utf8Decoded;
 		  yourself
+]
+
+{ #category : 'instance creation' }
+OCRFileChange class >> textFileClassFor: aPath [
+	"Markdown files are rendered; other text files only diffed."
+
+	^ (#( 'md' 'markdown' ) includes: (aPath copyAfterLast: $.) asLowercase)
+		  ifTrue: [ OCRMarkdownFileChange ]
+		  ifFalse: [ self ]
 ]
 
 { #category : 'image' }

@@ -7,7 +7,7 @@ A small Spec 2 application for Pharo 15 to review code changes (typically writte
 A review is **everything between a base commit and the current image**, as computed by Iceberg, plus the other files of the repository:
 
 - **Code** of the packages loaded in the image: Iceberg's diff between the base commit and the image (`OCRMethodChange`, `OCRClassChange`).
-- **Files** (`OCRFileChange`): every other file (README, DESIGN.md, `.properties`, the files of packages that are not loaded), compared as a whole between the base commit and the disk. Only files that the base commit or the last commit has are compared, so a brand-new file shows up once it is committed. A file that is not text on both sides (not UTF-8, or with a NUL byte) is binary (`OCRBinaryFileChange`): instead of a diff, the window shows its kind and sizes (e.g. `Binary file, modified: 1.20 KB → 2.00 KB`), and for a picture (PNG, JPEG, GIF, BMP) the base and disk versions side by side.
+- **Files** (`OCRFileChange`): every other file (README, DESIGN.md, `.properties`, the files of packages that are not loaded), compared as a whole between the base commit and the disk. Only files that the base commit or the last commit has are compared, so a brand-new file shows up once it is committed. A file that is not text on both sides (not UTF-8, or with a NUL byte) is binary (`OCRBinaryFileChange`): instead of a diff, the window shows its kind and sizes (e.g. `Binary file, modified: 1.20 KB → 2.00 KB`), and for a picture (PNG, JPEG, GIF, BMP) the base and disk versions side by side. A Markdown file (`.md`, `.markdown`, an `OCRMarkdownFileChange`) is shown rendered with Microdown (`MicrodownPresenter`), base and disk side by side; **Source** switches to the text diff, and the choice stays while moving between Markdown files.
 
 Supported bases (`OCRLastCommitBase`, `OCRSplitBase`):
 
@@ -168,7 +168,7 @@ Order: the progress line and the "Not reviewed yet" list only when at least one 
   - trees: `OCRStructuralTreeBuilder`, `OCRTopicTreeBuilder`, and the nodes `OCRContainerNode`, `OCRChangeNode`, `OCRTopicNode`;
   - output: `OCRFeedbackWriter` (Copy review);
   - Iceberg: `OCRIcebergReader` only;
-  - UI: `OCRReviewPresenter` (the window), made of `OCRReviewToolbar`, `OCRReviewTabsPresenter` (the four tabs, with `OCRGuidePresenter`, `OCRPullRequestPresenter` and `OCRNotebookPage` for the hover help) and `OCRChangeAreaPresenter` (diff, notes, editor, topic text, `OCRBinaryFilePresenter`); `OCRPickerPresenter`.
+  - UI: `OCRReviewPresenter` (the window), made of `OCRReviewToolbar`, `OCRReviewTabsPresenter` (the four tabs, with `OCRGuidePresenter`, `OCRPullRequestPresenter` and `OCRNotebookPage` for the hover help) and `OCRChangeAreaPresenter` (diff, notes, editor, topic text, `OCRMarkdownFilePresenter`, `OCRBinaryFilePresenter`); `OCRPickerPresenter`.
 - Class prefix: `OCR`.
 - The tool uses its own small model classes (`OCRChange`, `OCRReview`, …). A single reader class knows Iceberg's API and turns an Iceberg diff into `OCRChange`s; it is kept as small as possible.
 

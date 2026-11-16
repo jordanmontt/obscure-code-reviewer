@@ -1,5 +1,5 @@
 "
-I test how a changed file becomes a text change (with a diff) or an OCRBinaryFileChange (sizes and pictures), from its bytes.
+I test how a changed file becomes a text change (with a diff), a Markdown change (rendered) or an OCRBinaryFileChange (sizes and pictures), from its path and bytes.
 "
 Class {
 	#name : 'OCRBinaryFileChangeTest',
@@ -29,6 +29,12 @@ OCRBinaryFileChangeTest >> pngBytes [
 OCRBinaryFileChangeTest >> testABinaryFileHasNoLines [
 
 	self assert: (self fileAt: 'logo.png' from: self pngBytes to: #[ 1 2 ]) lineCount equals: 0
+]
+
+{ #category : 'tests' }
+OCRBinaryFileChangeTest >> testABinaryFileNamedLikeMarkdownIsBinary [
+
+	self assert: (self fileAt: 'README.md' from: self pngBytes to: self pngBytes) isBinary
 ]
 
 { #category : 'tests' }
@@ -75,6 +81,14 @@ OCRBinaryFileChangeTest >> testDescriptionGivesKindAndSizes [
 	self assert: change description equals: ('Binary file, modified: {1} → {2}' format: {
 		 2048 humanReadableByteSizeString.
 		 3072 humanReadableByteSizeString })
+]
+
+{ #category : 'tests' }
+OCRBinaryFileChangeTest >> testMarkdownFilesAreKnownByTheirExtension [
+
+	self assert: (self fileAt: 'README.md' from: 'a' utf8Encoded to: 'b' utf8Encoded) class equals: OCRMarkdownFileChange.
+	self assert: (self fileAt: 'docs/Guide.MARKDOWN' from: 'a' utf8Encoded to: 'b' utf8Encoded) class equals: OCRMarkdownFileChange.
+	self assert: (self fileAt: 'notes.txt' from: 'a' utf8Encoded to: 'b' utf8Encoded) class equals: OCRFileChange
 ]
 
 { #category : 'tests' }

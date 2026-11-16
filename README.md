@@ -1,5 +1,7 @@
 # Obscure Code Reviewer
 
+<!-- MEME: drop readme-meme.png here (left: the agent codes and you don't understand; right: you review it with this tool). -->
+
 Review code changes inside a Pharo image, where there are no files to diff. Built for reviewing what a coding agent wrote, but it works without one.
 
 It shows everything between a base commit and the image, organized in a tree. You read the diffs, mark what you reviewed, write comments, and click **Copy review** to get Markdown you can paste back to the agent.
@@ -31,7 +33,7 @@ The repository must be registered in Iceberg, with a local checkout and its pack
 Everything between a **base commit** and the **image**, including changes not committed yet:
 
 - the code of the loaded packages (methods, class definitions, class comments);
-- the other files of the repository (README, docs, packages not loaded), compared with the disk. A brand-new file shows up once it is committed. Binary files (pictures, videos, archives) show their sizes instead of a diff, and pictures are shown side by side.
+- the other files of the repository (README, docs, packages not loaded), compared with the disk. A brand-new file shows up once it is committed. Markdown files are rendered with Microdown (switch to **Source** for the text diff). Binary files (pictures, videos, archives) show their sizes instead of a diff, and pictures are shown side by side.
 
 The base is chosen for you (the window title says which one):
 

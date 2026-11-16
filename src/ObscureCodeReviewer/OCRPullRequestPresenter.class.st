@@ -7,7 +7,6 @@ Class {
 	#name : 'OCRPullRequestPresenter',
 	#superclass : 'SpPresenter',
 	#instVars : [
-		'hintLabel',
 		'titleInput',
 		'bodyText',
 		'changedBlock'
@@ -29,7 +28,6 @@ OCRPullRequestPresenter >> defaultLayout [
 
 	^ SpBoxLayout newTopToBottom
 		  spacing: 5;
-		  add: hintLabel expand: false;
 		  add: titleInput expand: false;
 		  add: bodyText;
 		  yourself
@@ -45,7 +43,6 @@ OCRPullRequestPresenter >> initialize [
 { #category : 'initialization' }
 OCRPullRequestPresenter >> initializePresenters [
 
-	hintLabel := self newLabel label: 'Drafted by the agent at the top of the guide. Copy review includes it when you edit it.'.
 	titleInput := self newTextInput
 		              placeholder: 'Title';
 		              yourself.
