@@ -107,7 +107,8 @@ Review of <repo>, base <short commit id> (<label>)
 
 - Code must stay understandable and editable by humans.
 - Model separate from Spec presenters; presenters stay thin.
-- SUnit tests for the model, built from hand-made `OCRChange`s. Iceberg itself is not tested.
+- SUnit tests for the model, built from hand-made `OCRMethodChange`s and `OCRClassChange`s. Iceberg itself is not tested.
+- No nil as a value: different cases are different classes (`OCRMethodChange` / `OCRClassChange`, `OCRContainerNode` / `OCRChangeNode`).
 - Small methods, intention-revealing names, a class comment on every class, no metaprogramming.
 
 ## Plan
@@ -119,6 +120,7 @@ Review of <repo>, base <short commit id> (<label>)
 5. Picker and world menu entry.
 6. Topics: guide parser, guide store, paste box, warnings.
 7. README for Pharo developers: clear and straight to the point, including the branch caveat.
+8. Ideas from the CodeReview tool (`github://guillep/pharo-review`): Reviewed marks, links from moved code to where it came from, and line counts.
 
 ## Process
 

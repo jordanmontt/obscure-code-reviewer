@@ -26,14 +26,13 @@ OCRIcebergReader >> changeFrom: aNode [
 
 	| operation change |
 	operation := aNode value.
-	change := OCRChange new
+	change := (self newChangeFor: aNode definition)
 		          kind: (self kindOf: operation);
 		          packageName: (self packageNameOf: aNode);
 		          className: (self classNameOf: aNode);
 		          oldSource: operation rightContents;
 		          newSource: operation leftContents;
 		          yourself.
-	aNode definition isMethodDefinition ifTrue: [ change selector: aNode definition selector asSymbol ].
 	(self isExtension: aNode) ifTrue: [ change beExtension ].
 	^ change
 ]
@@ -56,21 +55,23 @@ OCRIcebergReader >> classNameOf: aNode [
 ]
 
 { #category : 'reading' }
-OCRIcebergReader >> declaresNoVariables: aClassSideDefinition [
+OCRIcebergReader >> classSideVariablesOf: anOperation [
+	"The class-side variables on both sides of the change."
 
-	^ aClassSideDefinition isEmpty or: [ aClassSideDefinition endsWith: 'instanceVariableNames: ''''' ]
+	| variables |
+	variables := anOperation definition asMCDefinition classInstVarNames.
+	anOperation isModification ifTrue: [ variables := variables , anOperation oldDefinition asMCDefinition classInstVarNames ].
+	^ variables
 ]
 
 { #category : 'reading' }
 OCRIcebergReader >> isEmptyClassSideDefinition: aNode [
-	"Iceberg reports a class-side definition ('MyClass class instanceVariableNames: ''''') for every new class.
+	"Iceberg reports a class-side definition ('MyClass class') for every new class.
 	It is only worth reviewing when the class side declares variables."
 
-	| operation |
 	aNode definition isClassDefinition ifFalse: [ ^ false ].
 	aNode definition isMeta ifFalse: [ ^ false ].
-	operation := aNode value.
-	^ (self declaresNoVariables: operation leftContents) and: [ self declaresNoVariables: operation rightContents ]
+	^ (self classSideVariablesOf: aNode value) isEmpty
 ]
 
 { #category : 'reading' }
@@ -96,6 +97,16 @@ OCRIcebergReader >> kindOf: anOperation [
 	anOperation isAddition ifTrue: [ ^ #addition ].
 	anOperation isRemoval ifTrue: [ ^ #removal ].
 	^ #modification
+]
+
+{ #category : 'reading' }
+OCRIcebergReader >> newChangeFor: aDefinition [
+
+	aDefinition isMethodDefinition ifTrue: [
+		^ OCRMethodChange new
+			  selector: aDefinition selector asSymbol;
+			  yourself ].
+	^ OCRClassChange new
 ]
 
 { #category : 'reading' }

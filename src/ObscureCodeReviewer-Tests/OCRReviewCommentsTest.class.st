@@ -11,7 +11,7 @@ Class {
 { #category : 'helpers' }
 OCRReviewCommentsTest >> methodChange: aSelector class: aClassName [
 
-	^ OCRChange modification
+	^ OCRMethodChange modification
 		  packageName: 'MyProject';
 		  className: aClassName;
 		  selector: aSelector;
@@ -77,7 +77,7 @@ OCRReviewCommentsTest >> testEmptyCommentRemovesComment [
 OCRReviewCommentsTest >> testFeedbackDescribesKind [
 
 	| added review |
-	added := OCRChange addition
+	added := OCRMethodChange addition
 		         packageName: 'MyProject';
 		         className: 'MyClass';
 		         selector: #a;

@@ -12,7 +12,7 @@ Class {
 OCRChangeTest >> testClassDefinitionReferenceIsClassName [
 
 	| change |
-	change := OCRChange modification
+	change := OCRClassChange modification
 		          className: 'MyClass';
 		          yourself.
 
@@ -24,7 +24,7 @@ OCRChangeTest >> testClassDefinitionReferenceIsClassName [
 OCRChangeTest >> testClassSideMethodReferenceIncludesClass [
 
 	| change |
-	change := OCRChange modification
+	change := OCRMethodChange modification
 		          className: 'MyClass class';
 		          selector: #new;
 		          yourself.
@@ -36,7 +36,7 @@ OCRChangeTest >> testClassSideMethodReferenceIncludesClass [
 OCRChangeTest >> testExtensionHasItsOwnGroupName [
 
 	| change |
-	change := OCRChange addition
+	change := OCRMethodChange addition
 		          className: 'Object';
 		          selector: #isMyThing;
 		          yourself.
@@ -49,25 +49,34 @@ OCRChangeTest >> testExtensionHasItsOwnGroupName [
 { #category : 'tests' }
 OCRChangeTest >> testKindIsSetByInstanceCreation [
 
-	self assert: OCRChange addition isAddition.
-	self assert: OCRChange modification isModification.
-	self assert: OCRChange removal isRemoval.
-	self deny: OCRChange addition isModification
+	self assert: OCRMethodChange addition isAddition.
+	self assert: OCRMethodChange modification isModification.
+	self assert: OCRMethodChange removal isRemoval.
+	self deny: OCRMethodChange addition isModification
 ]
 
 { #category : 'tests' }
 OCRChangeTest >> testKindMarker [
 
-	self assert: OCRChange addition kindMarker equals: '+'.
-	self assert: OCRChange modification kindMarker equals: '~'.
-	self assert: OCRChange removal kindMarker equals: '-'
+	self assert: OCRMethodChange addition kindMarker equals: '+'.
+	self assert: OCRMethodChange modification kindMarker equals: '~'.
+	self assert: OCRMethodChange removal kindMarker equals: '-'
+]
+
+{ #category : 'tests' }
+OCRChangeTest >> testMethodAndClassChangesSayWhatTheyAre [
+
+	self assert: OCRMethodChange modification isMethodChange.
+	self deny: OCRMethodChange modification isClassChange.
+	self assert: OCRClassChange modification isClassChange.
+	self deny: OCRClassChange modification isMethodChange
 ]
 
 { #category : 'tests' }
 OCRChangeTest >> testMethodReferenceIsClassAndSelector [
 
 	| change |
-	change := OCRChange modification
+	change := OCRMethodChange modification
 		          className: 'MyClass';
 		          selector: #myMethod;
 		          yourself.
@@ -79,7 +88,7 @@ OCRChangeTest >> testMethodReferenceIsClassAndSelector [
 OCRChangeTest >> testSourcesAreEmptyByDefault [
 
 	| change |
-	change := OCRChange addition.
+	change := OCRMethodChange addition.
 
 	self assert: change oldSource equals: ''.
 	self assert: change newSource equals: ''

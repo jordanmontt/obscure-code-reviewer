@@ -11,7 +11,7 @@ Class {
 { #category : 'helpers' }
 OCRReviewTest >> classChange: aClassName package: aPackageName [
 
-	^ OCRChange modification
+	^ OCRClassChange modification
 		  packageName: aPackageName;
 		  className: aClassName;
 		  yourself
@@ -27,7 +27,7 @@ OCRReviewTest >> codePackagesOf: someChanges [
 { #category : 'helpers' }
 OCRReviewTest >> methodChange: aSelector class: aClassName package: aPackageName [
 
-	^ OCRChange modification
+	^ OCRMethodChange modification
 		  packageName: aPackageName;
 		  className: aClassName;
 		  selector: aSelector;
@@ -117,7 +117,7 @@ OCRReviewTest >> testExtensionMethodsHaveTheirOwnNode [
 OCRReviewTest >> testMethodNodeLabelShowsKind [
 
 	| added methodNode |
-	added := OCRChange addition
+	added := OCRMethodChange addition
 		         packageName: 'MyPackage';
 		         className: 'MyClass';
 		         selector: #myMethod;
@@ -167,6 +167,16 @@ OCRReviewTest >> testPackagesAndClassesAreSortedByName [
 
 	self assert: (self namesOf: packages) equals: #( 'PackageA' 'PackageB' ).
 	self assert: (self namesOf: packages second children) equals: #( 'Alpha' 'Zeta' )
+]
+
+{ #category : 'tests' }
+OCRReviewTest >> testSectionsAndPackagesHaveNoChange [
+
+	| section |
+	section := (self reviewWith: { (self methodChange: #a class: 'MyClass' package: 'MyPackage') }) structuralTree first.
+
+	self deny: section hasChange.
+	self deny: section children first hasChange
 ]
 
 { #category : 'tests' }

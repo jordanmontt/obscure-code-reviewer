@@ -24,8 +24,7 @@ OCRStructuralTreeBuilder >> groupNodeNamed: aGroupName in: someChanges [
 
 	| groupChanges node methodChanges |
 	groupChanges := someChanges select: [ :each | each groupName = aGroupName ].
-	node := OCRTreeNode named: aGroupName iconName: (self iconNameOfGroup: groupChanges).
-	groupChanges detect: [ :each | each isClassChange ] ifFound: [ :classChange | node change: classChange ].
+	node := self newGroupNodeNamed: aGroupName for: groupChanges.
 	methodChanges := groupChanges select: [ :each | each isMethodChange ].
 	(methodChanges asSortedCollection: [ :a :b | a selector <= b selector ]) do: [ :each | node addChild: (self methodNodeFor: each) ].
 	^ node
@@ -49,9 +48,19 @@ OCRStructuralTreeBuilder >> iconNameOfSection: aSectionName [
 { #category : 'building' }
 OCRStructuralTreeBuilder >> methodNodeFor: aChange [
 
-	^ (OCRTreeNode named: aChange name iconName: #page)
-		  change: aChange;
-		  yourself
+	^ OCRChangeNode named: aChange name iconName: #page change: aChange
+]
+
+{ #category : 'building' }
+OCRStructuralTreeBuilder >> newGroupNodeNamed: aGroupName for: groupChanges [
+	"When the class definition changed, the group node is that change."
+
+	| iconName |
+	iconName := self iconNameOfGroup: groupChanges.
+	^ groupChanges
+		  detect: [ :each | each isClassChange ]
+		  ifFound: [ :classChange | OCRChangeNode named: aGroupName iconName: iconName change: classChange ]
+		  ifNone: [ OCRContainerNode named: aGroupName iconName: iconName ]
 ]
 
 { #category : 'building' }
@@ -59,7 +68,7 @@ OCRStructuralTreeBuilder >> packageNodeNamed: aPackageName in: someChanges [
 
 	| packageChanges node |
 	packageChanges := someChanges select: [ :each | each packageName = aPackageName ].
-	node := OCRTreeNode named: aPackageName iconName: #package.
+	node := OCRContainerNode named: aPackageName iconName: #package.
 	(self sortedNamesOf: packageChanges by: [ :each | each groupName ]) do: [ :groupName |
 		node addChild: (self groupNodeNamed: groupName in: packageChanges) ].
 	^ node
@@ -85,7 +94,7 @@ OCRStructuralTreeBuilder >> sectionNodeNamed: aSectionName in: someChanges [
 
 	| sectionChanges node |
 	sectionChanges := someChanges select: [ :each | (self sectionNameOf: each) = aSectionName ].
-	node := OCRTreeNode named: aSectionName iconName: (self iconNameOfSection: aSectionName).
+	node := OCRContainerNode named: aSectionName iconName: (self iconNameOfSection: aSectionName).
 	(self sortedNamesOf: sectionChanges by: [ :each | each packageName ]) do: [ :packageName |
 		node addChild: (self packageNodeNamed: packageName in: sectionChanges) ].
 	^ node

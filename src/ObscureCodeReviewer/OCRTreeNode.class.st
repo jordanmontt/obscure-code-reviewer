@@ -1,9 +1,9 @@
 "
-I am a node of the changes tree shown in the review window.
+I am a node of the changes tree shown in the review window. I have a name, an icon name and children.
 
-I have a name, an icon name and children. When I represent a changed item, I also hold its OCRChange. A class node can hold a change too, when its class definition changed.
+My subclasses are OCRContainerNode (a section, a package, or a class whose definition did not change) and OCRChangeNode (a changed method or class definition).
 
-OCRStructuralTreeBuilder creates me.
+OCRStructuralTreeBuilder creates them.
 "
 Class {
 	#name : 'OCRTreeNode',
@@ -11,7 +11,6 @@ Class {
 	#instVars : [
 		'name',
 		'children',
-		'change',
 		'iconName'
 	],
 	#category : 'ObscureCodeReviewer-Model',
@@ -42,18 +41,6 @@ OCRTreeNode >> addChild: aNode [
 ]
 
 { #category : 'accessing' }
-OCRTreeNode >> change [
-
-	^ change
-]
-
-{ #category : 'accessing' }
-OCRTreeNode >> change: aChange [
-
-	change := aChange
-]
-
-{ #category : 'accessing' }
 OCRTreeNode >> children [
 
 	^ children
@@ -62,7 +49,7 @@ OCRTreeNode >> children [
 { #category : 'testing' }
 OCRTreeNode >> hasChange [
 
-	^ change notNil
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -87,10 +74,9 @@ OCRTreeNode >> initialize [
 
 { #category : 'displaying' }
 OCRTreeNode >> label [
-	"The text shown in the tree, e.g. '+ myMethod' for an added method."
+	"The text shown in the tree."
 
-	self hasChange ifFalse: [ ^ name ].
-	^ change kindMarker , ' ' , name
+	^ name
 ]
 
 { #category : 'accessing' }

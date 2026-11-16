@@ -29,14 +29,6 @@ OCRReviewPresenter class >> onRepositoryNamed: aString [
 	^ self on: (OCRIcebergReader reviewOfUncommittedChangesInRepositoryNamed: aString)
 ]
 
-{ #category : 'actions' }
-OCRReviewPresenter >> changeOf: aNode [
-	"Answer the change of aNode, or nil when nothing or a container node is selected."
-
-	aNode ifNil: [ ^ nil ].
-	^ aNode change
-]
-
 { #category : 'layout' }
 OCRReviewPresenter >> changesLayout [
 	"The tree on the left; the diff and the comment of the selected change on the right."
@@ -65,17 +57,15 @@ OCRReviewPresenter >> colorFor: aNode [
 { #category : 'actions' }
 OCRReviewPresenter >> commentChanged: aString [
 
-	| change |
-	change := self changeOf: changesTree selectedItem.
-	change ifNil: [ ^ self ].
-	review comment: aString on: change.
+	self hasSelectedChange ifFalse: [ ^ self ].
+	review comment: aString on: self selectedChange.
 	changesTree refresh
 ]
 
 { #category : 'initialization' }
 OCRReviewPresenter >> connectPresenters [
 
-	changesTree whenSelectedItemChangedDo: [ :node | self showNode: node ].
+	changesTree whenSelectionChangedDo: [ self showSelection ].
 	commentText whenTextChangedDo: [ :text | self commentChanged: text asString ].
 	generalCommentText whenTextChangedDo: [ :text | review generalComment: text asString ]
 ]
@@ -100,6 +90,21 @@ OCRReviewPresenter >> defaultLayout [
 			   add: generalCommentText;
 			   yourself);
 		  yourself
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> disableComment [
+
+	commentText
+		enabled: false;
+		text: ''
+]
+
+{ #category : 'testing' }
+OCRReviewPresenter >> hasSelectedChange [
+	"Nothing selected, or a section, package or unchanged class selected, means no change to show."
+
+	^ changesTree selection isEmpty not and: [ changesTree selectedItem hasChange ]
 ]
 
 { #category : 'initialization' }
@@ -149,6 +154,13 @@ OCRReviewPresenter >> labelFor: aNode [
 	^ aNode label
 ]
 
+{ #category : 'accessing' }
+OCRReviewPresenter >> selectedChange [
+	"Only valid when #hasSelectedChange is true."
+
+	^ changesTree selectedItem change
+]
+
 { #category : 'initialization' }
 OCRReviewPresenter >> setModelBeforeInitialization: aReview [
 
@@ -156,30 +168,24 @@ OCRReviewPresenter >> setModelBeforeInitialization: aReview [
 ]
 
 { #category : 'actions' }
-OCRReviewPresenter >> showChangeOf: aNode [
-	"Both sides are cleared first, as Iceberg does, so the diff never mixes two changes."
+OCRReviewPresenter >> showChange: aChange [
+
+	diff
+		leftText: aChange oldSource;
+		rightText: aChange newSource.
+	commentText
+		enabled: true;
+		text: (review commentOn: aChange)
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> showSelection [
+	"Both diff sides are cleared first, as Iceberg does, so the diff never mixes two changes."
 
 	diff
 		leftText: '';
 		rightText: ''.
-	(aNode notNil and: [ aNode hasChange ]) ifFalse: [ ^ self ].
-	diff
-		leftText: aNode change oldSource;
-		rightText: aNode change newSource
-]
-
-{ #category : 'actions' }
-OCRReviewPresenter >> showCommentOf: aNode [
-
-	| change |
-	change := self changeOf: aNode.
-	commentText enabled: change notNil.
-	commentText text: (change ifNil: [ '' ] ifNotNil: [ review commentOn: change ])
-]
-
-{ #category : 'actions' }
-OCRReviewPresenter >> showNode: aNode [
-
-	self showChangeOf: aNode.
-	self showCommentOf: aNode
+	self hasSelectedChange
+		ifTrue: [ self showChange: self selectedChange ]
+		ifFalse: [ self disableComment ]
 ]

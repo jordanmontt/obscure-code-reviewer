@@ -1,9 +1,11 @@
 "
-I am one changed item of a review: a method or a class definition that was added, modified, or removed between the base and the image.
+I am one changed item of a review, added, modified, or removed between the base and the image.
 
-I am a plain object. OCRIcebergReader creates me from an Iceberg diff, and tests create me by hand:
+I hold what all changes share: kind, package, class name and the two sources. My subclasses are OCRMethodChange and OCRClassChange.
 
-	OCRChange modification
+OCRIcebergReader creates my subclasses from an Iceberg diff, and tests create them by hand:
+
+	OCRMethodChange modification
 		packageName: 'MyPackage';
 		className: 'MyClass';
 		selector: #myMethod;
@@ -11,8 +13,7 @@ I am a plain object. OCRIcebergReader creates me from an Iceberg diff, and tests
 		newSource: 'myMethod ^ 2';
 		yourself
 
-- className is 'MyClass class' for class-side methods.
-- selector is nil when I represent a class definition.
+className is 'MyClass class' for class-side methods.
 "
 Class {
 	#name : 'OCRChange',
@@ -21,7 +22,6 @@ Class {
 		'kind',
 		'packageName',
 		'className',
-		'selector',
 		'isExtension',
 		'oldSource',
 		'newSource'
@@ -100,7 +100,7 @@ OCRChange >> isAddition [
 { #category : 'testing' }
 OCRChange >> isClassChange [
 
-	^ selector isNil
+	^ false
 ]
 
 { #category : 'testing' }
@@ -112,7 +112,7 @@ OCRChange >> isExtension [
 { #category : 'testing' }
 OCRChange >> isMethodChange [
 
-	^ selector notNil
+	^ false
 ]
 
 { #category : 'testing' }
@@ -161,8 +161,7 @@ OCRChange >> kindMarker [
 OCRChange >> name [
 	"The name shown for me in the changes tree."
 
-	self isMethodChange ifTrue: [ ^ selector asString ].
-	^ className
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -217,18 +216,5 @@ OCRChange >> printOn: aStream [
 OCRChange >> reference [
 	"How I am written in review feedback and in review guides, e.g. 'MyClass>>#myMethod'."
 
-	self isMethodChange ifTrue: [ ^ className , '>>#' , selector ].
-	^ className
-]
-
-{ #category : 'accessing' }
-OCRChange >> selector [
-
-	^ selector
-]
-
-{ #category : 'accessing' }
-OCRChange >> selector: aSymbol [
-
-	selector := aSymbol
+	^ self subclassResponsibility
 ]
