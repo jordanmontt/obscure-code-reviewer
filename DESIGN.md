@@ -6,17 +6,21 @@ A small Spec 2 application for Pharo 15 to review code changes (typically writte
 
 A review is **everything between a base commit and the current image**, as computed by Iceberg.
 
-Supported bases:
+Supported bases (`OCRLastCommitBase`, `OCRSplitBase`):
 
 - **Last commit (HEAD):** uncommitted changes only.
-- **Branch split point:** where the current branch split from another branch. This includes the commits on the branch *and* the uncommitted changes.
+- **Branch split point:** where the current branch split from another branch, local (`main`) or remote (`origin/main`). This includes the commits on the branch *and* the uncommitted changes.
 
-Default base:
+Default base (`OCRDefaultBaseRule`). It never fails: when nothing better fits, it uses the last commit. The main branch is the first local branch named `main` or `master`.
 
-- On a feature branch: the split point with `main`.
-- On `main` itself: the split point with `origin/main`, i.e. everything not pushed yet.
+| Situation | Base | The review shows |
+|---|---|---|
+| On another branch, and the project has `main` or `master` | split from the main branch | the whole branch, like a pull request |
+| On the main branch, with an upstream | split from its upstream (e.g. `origin/main`) | everything not pushed yet |
+| On the main branch, never pushed | last commit | uncommitted changes |
+| No `main` and no `master` | last commit | uncommitted changes |
 
-The window title always shows the repository and the base used.
+The window title always shows the repository and the base used, e.g. `base: 8808718 (split from origin/main)`. The picker (step 6) will let the user choose another base.
 
 Not supported: reviewing commit by commit. Picking an arbitrary base commit may come later.
 

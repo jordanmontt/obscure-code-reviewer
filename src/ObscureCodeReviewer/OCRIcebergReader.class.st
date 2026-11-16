@@ -3,8 +3,10 @@ I am the only class that knows Iceberg. I turn an Iceberg diff into an OCRReview
 
 I am kept small on purpose and I am not tested: everything after me works on plain OCRChanges.
 
-	OCRIcebergReader reviewOfUncommittedChangesInRepositoryNamed: 'my-project'
+	OCRIcebergReader reviewOfRepositoryNamed: 'my-project'
+	OCRIcebergReader reviewOfRepositoryNamed: 'my-project' against: OCRLastCommitBase new
 
+Without a base I use the default one (see #defaultBaseOf:).
 Iceberg diffs have two sides: left is the newer one (the image), right is the older one (the base commit).
 "
 Class {
@@ -16,9 +18,24 @@ Class {
 }
 
 { #category : 'instance creation' }
-OCRIcebergReader class >> reviewOfUncommittedChangesInRepositoryNamed: aString [
+OCRIcebergReader class >> repositoryNamed: aString [
 
-	^ self new reviewOfUncommittedChangesIn: (IceRepository registry detect: [ :each | each name = aString ])
+	^ IceRepository registry detect: [ :each | each name = aString ]
+]
+
+{ #category : 'instance creation' }
+OCRIcebergReader class >> reviewOfRepositoryNamed: aString [
+
+	| repository reader |
+	repository := self repositoryNamed: aString.
+	reader := self new.
+	^ reader reviewOf: repository against: (reader defaultBaseOf: repository)
+]
+
+{ #category : 'instance creation' }
+OCRIcebergReader class >> reviewOfRepositoryNamed: aString against: aBase [
+
+	^ self new reviewOf: (self repositoryNamed: aString) against: aBase
 ]
 
 { #category : 'reading' }
@@ -64,6 +81,17 @@ OCRIcebergReader >> classSideVariablesOf: anOperation [
 	^ variables
 ]
 
+{ #category : 'bases' }
+OCRIcebergReader >> defaultBaseOf: aRepository [
+	"See OCRDefaultBaseRule. Never fails: it falls back to the last commit."
+
+	^ OCRDefaultBaseRule new
+		  currentBranchName: aRepository branchName;
+		  localBranchNames: aRepository localBranchNames;
+		  upstreamNames: (self upstreamNamesOf: aRepository);
+		  base
+]
+
 { #category : 'reading' }
 OCRIcebergReader >> isEmptyClassSideDefinition: aNode [
 	"Iceberg reports a class-side definition ('MyClass class') for every new class.
@@ -99,6 +127,12 @@ OCRIcebergReader >> kindOf: anOperation [
 	^ #modification
 ]
 
+{ #category : 'bases' }
+OCRIcebergReader >> lastCommitOf: aRepository [
+
+	^ aRepository workingCopy referenceCommit
+]
+
 { #category : 'reading' }
 OCRIcebergReader >> newChangeFor: aDefinition [
 
@@ -119,12 +153,32 @@ OCRIcebergReader >> packageNameOf: aNode [
 ]
 
 { #category : 'reading' }
-OCRIcebergReader >> reviewOfUncommittedChangesIn: aRepository [
+OCRIcebergReader >> reviewOf: aRepository against: aBase [
 
-	| base |
-	base := aRepository workingCopy referenceCommit.
+	| baseCommit |
+	baseCommit := aBase commitIn: aRepository by: self.
 	^ OCRReview
 		  repositoryName: aRepository name
-		  baseLabel: base shortId , ' (last commit)'
-		  changes: (self changesIn: (IceDiff from: aRepository workingCopy to: base))
+		  base: aBase
+		  baseLabel: baseCommit shortId , ' (' , aBase description , ')'
+		  changes: (self changesIn: (IceDiff from: aRepository workingCopy to: baseCommit))
+]
+
+{ #category : 'bases' }
+OCRIcebergReader >> splitPointOf: aRepository fromBranchNamed: aBranchName [
+	"The commit where the current branch split from aBranchName, a local branch or a remote one like 'origin/main'."
+
+	| branch |
+	branch := aRepository branchNamed: aBranchName ifAbsent: [ aRepository remoteBranchNamed: aBranchName ].
+	^ (self lastCommitOf: aRepository) commonAncestorWith: branch commit
+]
+
+{ #category : 'bases' }
+OCRIcebergReader >> upstreamNamesOf: aRepository [
+	"Local branch name -> upstream branch name, for the local branches that have one."
+
+	| names |
+	names := Dictionary new.
+	aRepository localBranches do: [ :each | each hasUpstream ifTrue: [ names at: each name put: each upstream name ] ].
+	^ names
 ]

@@ -34,8 +34,9 @@ Class {
 
 { #category : 'instance creation' }
 OCRReviewPresenter class >> onRepositoryNamed: aString [
+	"Review the repository against its default base (see OCRIcebergReader>>#defaultBaseOf:)."
 
-	^ self on: (OCRIcebergReader reviewOfUncommittedChangesInRepositoryNamed: aString)
+	^ self on: (OCRIcebergReader reviewOfRepositoryNamed: aString)
 ]
 
 { #category : 'testing' }
@@ -250,9 +251,10 @@ OCRReviewPresenter >> refresh [
 
 { #category : 'actions' }
 OCRReviewPresenter >> reloadReview [
+	"Recompute the review against the same base."
 
 	| newReview |
-	newReview := OCRIcebergReader reviewOfUncommittedChangesInRepositoryNamed: review repositoryName.
+	newReview := OCRIcebergReader reviewOfRepositoryNamed: review repositoryName against: review base.
 	newReview takeCommentsFrom: review.
 	review := newReview.
 	self showReview

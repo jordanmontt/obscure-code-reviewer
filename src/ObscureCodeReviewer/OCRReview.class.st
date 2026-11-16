@@ -18,7 +18,8 @@ Class {
 		'baseLabel',
 		'changes',
 		'comments',
-		'generalComment'
+		'generalComment',
+		'base'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -26,9 +27,13 @@ Class {
 }
 
 { #category : 'instance creation' }
-OCRReview class >> repositoryName: aRepositoryName baseLabel: aBaseLabel changes: someChanges [
+OCRReview class >> repositoryName: aRepositoryName base: aBase baseLabel: aBaseLabel changes: someChanges [
 
-	^ self new setRepositoryName: aRepositoryName baseLabel: aBaseLabel changes: someChanges
+	^ self new
+		  setRepositoryName: aRepositoryName
+		  base: aBase
+		  baseLabel: aBaseLabel
+		  changes: someChanges
 ]
 
 { #category : 'refreshing' }
@@ -48,8 +53,15 @@ OCRReview >> addLostComment: aComment on: aReference [
 ]
 
 { #category : 'accessing' }
+OCRReview >> base [
+	"What my changes are compared to: an OCRLastCommitBase or an OCRSplitBase. A refresh uses the same base."
+
+	^ base
+]
+
+{ #category : 'accessing' }
 OCRReview >> baseLabel [
-	"Describes the base commit of the review, e.g. 'abc1234 (last commit)'."
+	"Describes the base commit of the review, e.g. 'abc1234 (split from main)'."
 
 	^ baseLabel
 ]
@@ -140,9 +152,10 @@ OCRReview >> repositoryName [
 ]
 
 { #category : 'initialization' }
-OCRReview >> setRepositoryName: aRepositoryName baseLabel: aBaseLabel changes: someChanges [
+OCRReview >> setRepositoryName: aRepositoryName base: aBase baseLabel: aBaseLabel changes: someChanges [
 
 	repositoryName := aRepositoryName.
+	base := aBase.
 	baseLabel := aBaseLabel.
 	changes := someChanges asOrderedCollection
 ]

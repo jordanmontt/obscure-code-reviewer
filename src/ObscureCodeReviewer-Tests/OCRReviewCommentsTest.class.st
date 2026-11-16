@@ -21,7 +21,11 @@ OCRReviewCommentsTest >> methodChange: aSelector class: aClassName [
 { #category : 'helpers' }
 OCRReviewCommentsTest >> reviewWith: someChanges [
 
-	^ OCRReview repositoryName: 'my-project' baseLabel: 'abc1234 (last commit)' changes: someChanges
+	^ OCRReview
+		  repositoryName: 'my-project'
+		  base: OCRLastCommitBase new
+		  baseLabel: 'abc1234 (last commit)'
+		  changes: someChanges
 ]
 
 { #category : 'tests' }
