@@ -1,12 +1,14 @@
 # Obscure Code Reviewer
 
-<!-- MEME: drop readme-meme.png here (left: the agent codes and you don't understand; right: you review it with this tool). -->
+<p align="center">
+  <img width="500" alt="left: the agent codes and you don't understand; right: you review it with this tool" src="https://github.com/user-attachments/assets/f9f7af83-1bfe-4dc2-82b5-94fda0aa172a" />
+  <br>
+  <em>Left: the agent codes and you don't understand. Right: you review it with this tool.</em>
+</p>
 
-Review code changes inside a Pharo image, where there are no files to diff. Built for reviewing what a coding agent wrote, but it works without one.
+Review code changes inside a Pharo image. Built for reviewing what a coding agent wrote, but it works without one.
 
 It shows everything between a base commit and the image, organized in a tree. You read the diffs, mark what you reviewed, write comments, and click **Copy review** to get Markdown you can paste back to the agent.
-
-Pharo 15, Spec 2, Iceberg.
 
 ## Install
 
@@ -86,7 +88,7 @@ The `pharo-review` agent skill describes the whole workflow; `DESIGN.md` describ
 ## Development
 
 - Packages: `ObscureCodeReviewer` (Model and UI tags), `ObscureCodeReviewer-Tests`, `BaselineOfObscureCodeReviewer`.
-- Only `OCRIcebergReader` knows Iceberg; everything else works on plain `OCRChange`s and is tested without a repository.
+- Only `OCRIcebergReader` knows Iceberg; everything else works on plain `OCRChange` and is tested without a repository.
 - Run the tests in `ObscureCodeReviewer-Tests`.
 
 ## License
