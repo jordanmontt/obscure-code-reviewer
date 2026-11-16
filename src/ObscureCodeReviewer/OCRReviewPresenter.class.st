@@ -1,9 +1,9 @@
 "
 I am the review window:
+- a toolbar with Refresh, to recompute the changes and keep the comments, and Copy review, to copy all comments as Markdown, ready to paste to the agent,
 - a tree of changes on the left,
 - a side-by-side diff (base | image) and a comment box for the selected change on the right,
-- a general comment at the bottom,
-- a button to copy all comments as Markdown, ready to paste to the agent.
+- a general comment at the bottom.
 
 	(OCRReviewPresenter onRepositoryNamed: 'my-project') open
 "
@@ -16,7 +16,7 @@ Class {
 		'diff',
 		'commentText',
 		'generalCommentText',
-		'copyButton'
+		'toolbar'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -80,10 +80,8 @@ OCRReviewPresenter >> copyReview [
 OCRReviewPresenter >> defaultLayout [
 
 	^ SpBoxLayout newTopToBottom
-		  add: (SpBoxLayout newLeftToRight
-			   add: copyButton expand: false;
-			   yourself)
-		  expand: false;
+		  spacing: 5;
+		  add: toolbar expand: false;
 		  add: (SpPanedLayout newTopToBottom
 			   positionOfSlider: 80 percent;
 			   add: self changesLayout;
@@ -110,12 +108,7 @@ OCRReviewPresenter >> hasSelectedChange [
 { #category : 'initialization' }
 OCRReviewPresenter >> initializePresenters [
 
-	copyButton := self newButton
-		              label: 'Copy review';
-		              icon: (self iconNamed: #smallCopy);
-		              help: 'Copy all comments as Markdown, ready to paste to the agent';
-		              action: [ self copyReview ];
-		              yourself.
+	self initializeToolbar.
 	changesTree := self newTree
 		               roots: review structuralTree;
 		               children: [ :node | node children ];
@@ -139,10 +132,31 @@ OCRReviewPresenter >> initializePresenters [
 ]
 
 { #category : 'initialization' }
+OCRReviewPresenter >> initializeToolbar [
+	"A toolbar like the Playground's."
+
+	toolbar := self newToolbar
+		           addStyle: 'stToolbar';
+		           addItem: (self newToolbarButton
+			            label: 'Refresh';
+			            icon: (self iconNamed: #glamorousRefresh);
+			            help: 'Recompute the changes from the image, keeping the comments';
+			            action: [ self refresh ];
+			            yourself);
+		           addItem: (self newToolbarButton
+			            label: 'Copy review';
+			            icon: (self iconNamed: #smallCopy);
+			            help: 'Copy all comments as Markdown, ready to paste to the agent';
+			            action: [ self copyReview ];
+			            yourself);
+		           yourself
+]
+
+{ #category : 'initialization' }
 OCRReviewPresenter >> initializeWindow: aWindowPresenter [
 
 	aWindowPresenter
-		title: 'Obscure Code Reviewer - ' , review repositoryName , ' - base: ' , review baseLabel;
+		title: self windowTitle;
 		initialExtent: 1100 @ 700
 ]
 
@@ -152,6 +166,17 @@ OCRReviewPresenter >> labelFor: aNode [
 
 	(aNode hasChange and: [ review hasCommentOn: aNode change ]) ifTrue: [ ^ aNode label , '   [commented]' ].
 	^ aNode label
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> refresh [
+	"Recompute the changes from the image. The comments are kept; see OCRReview>>#takeCommentsFrom:."
+
+	| newReview |
+	newReview := OCRIcebergReader reviewOfUncommittedChangesInRepositoryNamed: review repositoryName.
+	newReview takeCommentsFrom: review.
+	review := newReview.
+	self showReview
 ]
 
 { #category : 'accessing' }
@@ -179,6 +204,17 @@ OCRReviewPresenter >> showChange: aChange [
 ]
 
 { #category : 'actions' }
+OCRReviewPresenter >> showReview [
+	"Show the current review, after a refresh."
+
+	changesTree
+		roots: review structuralTree;
+		expandAll.
+	generalCommentText text: review generalComment.
+	self withWindowDo: [ :window | window title: self windowTitle ]
+]
+
+{ #category : 'actions' }
 OCRReviewPresenter >> showSelection [
 	"Both diff sides are cleared first, as Iceberg does, so the diff never mixes two changes."
 
@@ -188,4 +224,10 @@ OCRReviewPresenter >> showSelection [
 	self hasSelectedChange
 		ifTrue: [ self showChange: self selectedChange ]
 		ifFalse: [ self disableComment ]
+]
+
+{ #category : 'displaying' }
+OCRReviewPresenter >> windowTitle [
+
+	^ 'Obscure Code Reviewer - ' , review repositoryName , ' - base: ' , review baseLabel
 ]
