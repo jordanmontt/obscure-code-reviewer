@@ -37,11 +37,12 @@ OCRStructuralTreeBuilder >> iconNameOfGroup: someChanges [
 	^ #class
 ]
 
-{ #category : 'icons' }
+{ #category : 'private' }
 OCRStructuralTreeBuilder >> iconNameOfSection: aSectionName [
 
 	aSectionName = 'Tests' ifTrue: [ ^ #testGreen ].
 	aSectionName = 'Baseline' ifTrue: [ ^ #config ].
+	aSectionName = 'Files' ifTrue: [ ^ #folder ].
 	^ #smallSystemBrowser
 ]
 
@@ -74,27 +75,33 @@ OCRStructuralTreeBuilder >> packageNodeNamed: aPackageName in: someChanges [
 	^ node
 ]
 
-{ #category : 'sections' }
+{ #category : 'private' }
 OCRStructuralTreeBuilder >> sectionNameOf: aChange [
 
+	aChange isFileChange ifTrue: [ ^ 'Files' ].
 	(aChange packageName beginsWith: 'BaselineOf') ifTrue: [ ^ 'Baseline' ].
 	(aChange packageName includesSubstring: '-Test') ifTrue: [ ^ 'Tests' ].
 	^ 'Code'
 ]
 
-{ #category : 'sections' }
+{ #category : 'accessing' }
 OCRStructuralTreeBuilder >> sectionNames [
 	"In the order they are shown."
 
-	^ #( 'Code' 'Tests' 'Baseline' )
+	^ #( 'Code' 'Tests' 'Baseline' 'Files' )
 ]
 
-{ #category : 'building' }
+{ #category : 'private' }
 OCRStructuralTreeBuilder >> sectionNodeNamed: aSectionName in: someChanges [
+	"Code sections go package > class > method. The Files section is a flat list of paths."
 
 	| sectionChanges node |
 	sectionChanges := someChanges select: [ :each | (self sectionNameOf: each) = aSectionName ].
 	node := OCRContainerNode named: aSectionName iconName: (self iconNameOfSection: aSectionName).
+	aSectionName = 'Files' ifTrue: [
+		(sectionChanges asSortedCollection: [ :a :b | a path <= b path ]) do: [ :each |
+			node addChild: (OCRChangeNode named: each path iconName: #page change: each) ].
+		^ node ].
 	(self sortedNamesOf: sectionChanges by: [ :each | each packageName ]) do: [ :packageName |
 		node addChild: (self packageNodeNamed: packageName in: sectionChanges) ].
 	^ node
@@ -103,7 +110,7 @@ OCRStructuralTreeBuilder >> sectionNodeNamed: aSectionName in: someChanges [
 { #category : 'private' }
 OCRStructuralTreeBuilder >> sortedNamesOf: someChanges by: aBlock [
 
-	^ (someChanges collect: aBlock as: Set) asSortedCollection asArray
+	^ (someChanges collect: aBlock as: Set) sorted
 ]
 
 { #category : 'building' }

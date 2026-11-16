@@ -20,7 +20,8 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'text',
-		'topics'
+		'topics',
+		'pullRequest'
 	],
 	#classInstVars : [
 		'storedTexts'
@@ -69,11 +70,11 @@ OCRReviewGuide class >> removeForRepositoryNamed: aRepositoryName [
 ]
 
 { #category : 'instance creation' }
-OCRReviewGuide class >> text: aString topics: someTopics [
+OCRReviewGuide class >> text: aString topics: someTopics pullRequest: aPullRequest [
 	"Use #fromText: instead; this is for OCRGuideParser."
 
 	^ self new
-		  setText: aString topics: someTopics;
+		  setText: aString topics: someTopics pullRequest: aPullRequest;
 		  yourself
 ]
 
@@ -90,11 +91,26 @@ OCRReviewGuide >> includesTopicReferenced: aReference [
 	^ topics anySatisfy: [ :each | each reference = aReference ]
 ]
 
+{ #category : 'accessing' }
+OCRReviewGuide >> originOf: aReference ifNone: aBlock [
+	"The reference of the change the code of aReference was moved from."
+
+	^ (self firstTopicListing: aReference ifNone: [ ^ aBlock value ]) originOf: aReference ifNone: aBlock
+]
+
+{ #category : 'accessing' }
+OCRReviewGuide >> pullRequest [
+	"The agent's draft of the pull request description: the text before the first topic."
+
+	^ pullRequest
+]
+
 { #category : 'initialization' }
-OCRReviewGuide >> setText: aString topics: someTopics [
+OCRReviewGuide >> setText: aString topics: someTopics pullRequest: aPullRequest [
 
 	text := aString.
-	topics := someTopics
+	topics := someTopics.
+	pullRequest := aPullRequest
 ]
 
 { #category : 'accessing' }
@@ -108,4 +124,11 @@ OCRReviewGuide >> text [
 OCRReviewGuide >> topics [
 
 	^ topics
+]
+
+{ #category : 'accessing' }
+OCRReviewGuide >> whyOf: aReference [
+	"What the agent wrote after the reference of a change; empty when nothing."
+
+	^ (self firstTopicListing: aReference ifNone: [ ^ '' ]) whyOf: aReference
 ]

@@ -19,7 +19,7 @@ OCRMethodChange >> browse [
 	^ self methodInImage browse
 ]
 
-{ #category : 'image' }
+{ #category : 'editing' }
 OCRMethodChange >> compileInImage: aString notifying: aRequestor [
 	"Compile aString in my method's class, keeping its protocol. Answer whether it compiled;
 	when it did not, aRequestor (the code editor) shows the error. Not tested: it changes the live system."
@@ -31,7 +31,7 @@ OCRMethodChange >> compileInImage: aString notifying: aRequestor [
 		   classified: method protocolName
 		   withStamp: DateAndTime now
 		   notifying: aRequestor
-		   logSource: true) notNil
+		   logSource: true) isNotNil
 ]
 
 { #category : 'testing' }
@@ -63,7 +63,9 @@ OCRMethodChange >> name [
 { #category : 'displaying' }
 OCRMethodChange >> reference [
 
-	^ className , '>>#' , selector
+	^ '{1}>>#{2}' format: {
+		  className.
+		  selector }
 ]
 
 { #category : 'accessing' }

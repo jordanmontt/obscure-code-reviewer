@@ -4,7 +4,10 @@ A small Spec 2 application for Pharo 15 to review code changes (typically writte
 
 ## What a review is
 
-A review is **everything between a base commit and the current image**, as computed by Iceberg.
+A review is **everything between a base commit and the current image**, as computed by Iceberg, plus the other files of the repository:
+
+- **Code** of the packages loaded in the image: Iceberg's diff between the base commit and the image (`OCRMethodChange`, `OCRClassChange`).
+- **Files** (`OCRFileChange`): every other file (README, DESIGN.md, `.properties`, the files of packages that are not loaded), compared as a whole between the base commit and the disk. Only files that the base commit or the last commit has are compared, so a brand-new file shows up once it is committed. A file that is not text on both sides (not UTF-8, or with a NUL byte) is binary (`OCRBinaryFileChange`): instead of a diff, the window shows its kind and sizes (e.g. `Binary file, modified: 1.20 KB → 2.00 KB`), and for a picture (PNG, JPEG, GIF, BMP) the base and disk versions side by side.
 
 Supported bases (`OCRLastCommitBase`, `OCRSplitBase`):
 
@@ -33,31 +36,41 @@ Not supported: reviewing commit by commit. Picking an arbitrary base commit may 
 
 Follows Iceberg's tree shape, without the `src` directory level, split into sections:
 
-- sections **Code**, **Tests** (package name contains `-Test`) and **Baseline** (package name starts with `BaselineOf`); empty sections are hidden
+- sections **Code**, **Tests** (package name contains `-Test`), **Baseline** (package name starts with `BaselineOf`) and **Files** (a flat list of paths); empty sections are hidden
 - package → class (and `Foo class` for class-side) → method
 - icons show what each node is: section, package, class, extension, method
 - extension methods under their own node in the package
 - a changed class definition or class comment is the class node itself
 - each item is marked as added (`+`), modified (`~`), or removed (`-`); added and removed items are also colored with the current theme's success and danger text colors, so dark and custom themes work
+- each node shows the lines added and removed under it, e.g. `~ refresh  (6 lines)` (nothing for binary files, which have no lines)
+- a commented node is **bold** and marked `[commented]`
 
 ### Topics tab (optional, needs a review guide)
 
 The agent groups changes by what they do (e.g. "Optimize parsing"), across packages. The guide is Markdown (`OCRGuideParser`):
 
 ```markdown
+Title: Parse tokens lazily
+The parser re-scanned the stream for every token; it now reads one token at a time.
+
 # Optimize parsing
 Why: avoid re-scanning the stream for every token.
-- OCRParser>>#nextToken
+- OCRParser>>#nextToken reads one token, not the whole stream
 - OCRParser class>>#on:
 - OCRToken
 - OCRToken class
+- OCRToken>>#value <- OCRParser>>#tokenValueAt: extracted from the parser
+- README.md
 ```
 
-- `# ` headings are topics; the other lines below are the explanation; `- ` lines are changes. Text before the first topic is ignored.
-- A change is written as in the copied review: `Foo>>#bar`, `Foo class>>#bar`, `Foo` for a class definition and `Foo class` for a class-side definition. Backquotes are ignored and `Foo>>bar` is read as `Foo>>#bar`.
+- Text before the first topic is the **pull request description**: an optional first line `Title: …`, then the body (see "Pull request tab").
+- `# ` headings are topics; the other lines below are the explanation; `- ` lines are changes.
+- A change is written as in the copied review: `Foo>>#bar`, `Foo class>>#bar`, `Foo` for a class definition, `Foo class` for a class-side definition, and a path for a file. Backquotes are ignored (put a path with spaces between them) and `Foo>>bar` is read as `Foo>>#bar`.
+- After the reference, the rest of the line is **why that change** was made; it is shown above its diff.
+- `<- Other>>#ref` after the reference says the code was **moved or extracted** from that change: the diff then compares the new code with the old code of `Other>>#ref`, and says so above the diff.
 - A change belongs to exactly one topic. If listed twice, the first topic keeps it.
 - Changes not mentioned go to **"Not covered by any topic"**.
-- Problems (a change in two topics, a change not in the diff) appear as warnings in the Guide tab and never block the review.
+- Problems (a change in two topics, a change not in the diff, code moved from a change not in the diff) appear as warnings in the Guide tab and never block the review.
 - Selecting a topic shows its explanation in the diff area; a topic can be commented like a change.
 - The guide gets into the image either:
   - stored by the agent through the MCP: `OCRReviewGuide forRepositoryNamed: 'x' put: '…'` (kept in memory while the image runs, one guide per repository; storing again replaces it), or
@@ -65,19 +78,34 @@ Why: avoid re-scanning the stream for every token.
 - Refresh re-reads the stored guide.
 - The tool works fully without a guide: the Topics tab then has only "Not covered by any topic".
 
+### Pull request tab
+
+The title and body of the pull request the changes will become (`OCRPullRequest`). The tool does not open pull requests: the agent does, from this text, following its own pull request style (see the `pharo-review` skill).
+
+- The agent drafts them at the top of the guide; the reviewer edits them here.
+- Edits are kept in memory like comments, and survive a refresh (the reviewer's version wins over a new draft).
+- Copy review includes them only when the reviewer changed the draft.
+
 ## Window
 
 ```
-┌ Toolbar: [Refresh] [Copy review] [Browse] [Edit] [Save] [Cancel] ┐
-├[Structure][Topics][Guide]┬ Diff: base │ image (or topic text) ─────┤
-│ Package                  │                                         │
+┌ Toolbar: [Refresh] [Copy review] [Reviewed] [Browse] [Edit] [Save] [Cancel] ┐
+├[Structure][Topics][Guide][Pull request]┬ Why / moved from (when the guide says) ┤
+│ Package                                ├ Diff: base │ image (or topic text) ──┤
 │  Class                   ├ Comment on selected change or topic ────┤
 │   + method               │                                         │
 ├ General comment (whole review) ────────────────────────────────────┤
 ```
 
 - Side-by-side diff (`SpDiffPresenter`), old on the left, new on the right.
-- Items with a comment are marked in the tree.
+- Items with a comment are bold and marked `[commented]` in the tree.
+- Each tab explains itself when the mouse is over it.
+
+## Reviewed marks
+
+- **Reviewed** marks the selected change as reviewed, or every change under the selected node (package, class, topic, section). When everything selected is already reviewed, the button reads **Unmark** and unmarks it.
+- A node shows `[reviewed]` when every change under it is reviewed.
+- Marks are kept in memory, like comments. A refresh keeps the mark of a change only while its code is exactly the same: changed code must be reviewed again.
 
 ## Editing by hand
 
@@ -102,6 +130,12 @@ Copies Markdown to the clipboard, ready to paste to the agent. Only commented it
 
 ```markdown
 Review of <repo>, base <short commit id> (<label>)
+Reviewed: 12 of 40 changes.
+
+## Pull request (edited by the reviewer)
+Title: <title>
+
+<body>
 
 ## General
 <general comment>
@@ -111,9 +145,12 @@ Review of <repo>, base <short commit id> (<label>)
 
 ## Foo>>#bar (modified)
 <comment>
+
+## Not reviewed yet
+- Foo>>#baz (added)
 ```
 
-Order: the general comment, then topics in the guide's order, then changes in Structure tree order.
+Order: the progress line and the "Not reviewed yet" list only when at least one change is marked; the pull request only when the reviewer edited it; then the general comment, topics in the guide's order, and changes in Structure tree order.
 
 ## Opening the tool
 
@@ -126,6 +163,12 @@ Order: the general comment, then topics in the guide's order, then changes in St
 ## Code organization
 
 - Packages: `ObscureCodeReviewer` (tags `Model`, `UI`), `ObscureCodeReviewer-Tests`, `BaselineOfObscureCodeReviewer`.
+- Main classes:
+  - model: `OCRReview` (changes, marks, guide, pull request), `OCRReviewComments`, `OCRChange` and its subclasses, `OCRReviewGuide` / `OCRGuideParser` / `OCRTopic`, `OCRPullRequest`, the bases and `OCRDefaultBaseRule`, `OCRBaseChoices`;
+  - trees: `OCRStructuralTreeBuilder`, `OCRTopicTreeBuilder`, and the nodes `OCRContainerNode`, `OCRChangeNode`, `OCRTopicNode`;
+  - output: `OCRFeedbackWriter` (Copy review);
+  - Iceberg: `OCRIcebergReader` only;
+  - UI: `OCRReviewPresenter` (the window), made of `OCRReviewToolbar`, `OCRReviewTabsPresenter` (the four tabs, with `OCRGuidePresenter`, `OCRPullRequestPresenter` and `OCRNotebookPage` for the hover help) and `OCRChangeAreaPresenter` (diff, notes, editor, topic text, `OCRBinaryFilePresenter`); `OCRPickerPresenter`.
 - Class prefix: `OCR`.
 - The tool uses its own small model classes (`OCRChange`, `OCRReview`, …). A single reader class knows Iceberg's API and turns an Iceberg diff into `OCRChange`s; it is kept as small as possible.
 
@@ -133,9 +176,10 @@ Order: the general comment, then topics in the guide's order, then changes in St
 
 - Code must stay understandable and editable by humans.
 - Model separate from Spec presenters; presenters stay thin.
-- SUnit tests for the model, built from hand-made `OCRMethodChange`s and `OCRClassChange`s. Iceberg itself is not tested.
+- SUnit tests for the model, built from hand-made `OCRMethodChange`s, `OCRClassChange`s and `OCRFileChange`s. Iceberg itself is not tested, so `OCRIcebergReader` is not either.
 - No nil as a value: different cases are different classes (`OCRMethodChange` / `OCRClassChange`, `OCRContainerNode` / `OCRChangeNode`).
 - Small methods, intention-revealing names, a class comment on every class, no metaprogramming.
+- The Pharo critics (`critique_run` over the three packages) report nothing, except two false positives: `BaselineOfObscureCodeReviewer` (loaded by Metacello by name) and `OCRPickerPresenter` (used from its `<worldMenu>` pragma) are "not referenced".
 
 ## Plan
 
@@ -146,8 +190,11 @@ Order: the general comment, then topics in the guide's order, then changes in St
 5. Branch split-point base, with the `main` / `origin/main` default.
 6. Picker and world menu entry.
 7. Topics: guide parser, guide store, paste box, warnings.
-8. README for Pharo developers: clear and straight to the point, including the branch caveat.
-9. Ideas from the CodeReview tool (`github://guillep/pharo-review`): Reviewed marks, links from moved code to where it came from, and line counts.
+8. Files and pull request: non-code files and packages not loaded, the Pull request tab, why on a single change (ideas from the CodeReview tool, `github://guillep/pharo-review`).
+9. Reviewed marks, moved-code links, line counts, "Not reviewed yet" in Copy review (also from CodeReview).
+10. README for Pharo developers: clear and straight to the point, including the branch caveat.
+
+Not planned: a "Create pull request" button. Opening a pull request needs the agent's PR style and the reviewer's go-ahead, which live in the agent skills, not in the image.
 
 ## Process
 

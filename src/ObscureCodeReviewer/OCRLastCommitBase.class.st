@@ -11,6 +11,12 @@ Class {
 	#tag : 'Model'
 }
 
+{ #category : 'comparing' }
+OCRLastCommitBase >> = anObject [
+
+	^ self class = anObject class
+]
+
 { #category : 'reading' }
 OCRLastCommitBase >> commitIn: aRepository by: aReader [
 
@@ -22,4 +28,10 @@ OCRLastCommitBase >> description [
 	"How I am shown in the window title and the feedback header."
 
 	^ 'last commit'
+]
+
+{ #category : 'comparing' }
+OCRLastCommitBase >> hash [
+
+	^ self class hash
 ]

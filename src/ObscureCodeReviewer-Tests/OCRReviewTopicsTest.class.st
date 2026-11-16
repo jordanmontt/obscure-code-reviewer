@@ -70,7 +70,7 @@ OCRReviewTopicsTest >> testTopicCommentIsInTheFeedbackAfterTheGeneralComment [
 
 	feedback := review feedback.
 
-	self assert: (feedback includesSubstring: '## Topic: Parse faster' , String lf , 'Split this topic').
+	self assert: (feedback includesSubstring: (String lf join: #( '## Topic: Parse faster' 'Split this topic' ))).
 	self assert: (feedback indexOfSubCollection: '## General') < (feedback indexOfSubCollection: '## Topic: Parse faster').
 	self assert: (feedback indexOfSubCollection: '## Topic: Parse faster') < (feedback indexOfSubCollection: '## A>>#a')
 ]

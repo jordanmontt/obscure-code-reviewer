@@ -1,11 +1,11 @@
 "
 I am the review window:
-- a toolbar: Refresh recomputes the changes and keeps the comments; Copy review copies all comments as Markdown, ready to paste to the agent; Browse opens the System Browser on the selected change; Edit, Save and Cancel let the reviewer fix a method by hand,
-- a tree of changes on the left,
-- on the right, a side-by-side diff (base | image), or the code editor while editing, and a comment box for the selected change,
+- a toolbar (OCRReviewToolbar);
+- on the left, the Structure, Topics, Guide and Pull request tabs (OCRReviewTabsPresenter);
+- on the right, the selected change (OCRChangeAreaPresenter): its diff, a binary file, a topic's explanation, or the code editor while editing; below it, the comment on the selected change or topic;
 - a general comment at the bottom.
 
-While editing, the tree is disabled: Save or Cancel first. Saving refreshes the review.
+While editing, the tabs are disabled: Save or Cancel first. Saving refreshes the review.
 
 	(OCRReviewPresenter onRepositoryNamed: 'my-project') open
 "
@@ -14,23 +14,11 @@ Class {
 	#superclass : 'SpPresenter',
 	#instVars : [
 		'review',
-		'changesTree',
-		'diff',
-		'commentText',
-		'generalCommentText',
 		'toolbar',
-		'editor',
+		'tabs',
 		'changeArea',
-		'refreshButton',
-		'editButton',
-		'saveButton',
-		'cancelButton',
-		'browseButton',
-		'topicsTree',
-		'notebook',
-		'topicText',
-		'guidePresenter',
-		'activeTree'
+		'commentText',
+		'generalCommentText'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -52,6 +40,12 @@ OCRReviewPresenter >> applyGuide: aString [
 	self refresh
 ]
 
+{ #category : 'actions' }
+OCRReviewPresenter >> browseSelection [
+
+	self selectedChange browse
+]
+
 { #category : 'testing' }
 OCRReviewPresenter >> canBrowseSelection [
 
@@ -64,13 +58,20 @@ OCRReviewPresenter >> canEditSelection [
 	^ self hasSelectedChange and: [ self selectedChange isEditable ]
 ]
 
+{ #category : 'selection' }
+OCRReviewPresenter >> canMarkSelection [
+
+	tabs isSelectionEmpty ifTrue: [ ^ false ].
+	^ tabs selectedNode changesBelow isNotEmpty
+]
+
 { #category : 'layout' }
 OCRReviewPresenter >> changesLayout [
-	"The Structure, Topics and Guide tabs on the left; the diff (or the editor, or a topic's explanation) and the comment on the right."
+	"The tabs on the left; the change (or the editor, or a topic's explanation) and its comment on the right."
 
 	^ SpPanedLayout newLeftToRight
 		  positionOfSlider: 22 percent;
-		  add: notebook;
+		  add: tabs;
 		  add: (SpPanedLayout newTopToBottom
 			   positionOfSlider: 80 percent;
 			   add: changeArea;
@@ -79,34 +80,24 @@ OCRReviewPresenter >> changesLayout [
 		  yourself
 ]
 
-{ #category : 'displaying' }
-OCRReviewPresenter >> colorFor: aNode [
-	"Colors come from the current theme, so they also work with dark and custom themes."
-
-	aNode hasChange ifFalse: [ ^ self theme textColor ].
-	aNode change isAddition ifTrue: [ ^ self theme successTextColor ].
-	aNode change isRemoval ifTrue: [ ^ self theme dangerTextColor ].
-	^ self theme textColor
-]
-
 { #category : 'actions' }
 OCRReviewPresenter >> commentChanged: aString [
 
 	self hasSelectedCommentable ifFalse: [ ^ self ].
 	review comment: aString on: self selectedCommentable.
-	changesTree refresh.
-	topicsTree refresh
+	tabs refreshTrees
 ]
 
 { #category : 'initialization' }
 OCRReviewPresenter >> connectPresenters [
 
-	changesTree whenSelectionChangedDo: [ self selectionChangedIn: changesTree ].
-	topicsTree whenSelectionChangedDo: [ self selectionChangedIn: topicsTree ].
-	guidePresenter whenAppliedDo: [ :text | self applyGuide: text ].
+	tabs whenSelectionChangedDo: [ self showSelection ].
+	tabs whenGuideAppliedDo: [ :text | self applyGuide: text ].
+	tabs whenPullRequestChangedDo: [ :pullRequest | review pullRequest: pullRequest ].
+	changeArea whenSaveRequestedDo: [ self saveEdit ].
 	commentText whenTextChangedDo: [ :text | self commentChanged: text asString ].
 	generalCommentText whenTextChangedDo: [ :text | review generalComment: text asString ].
-	editor whenSubmitDo: [ :text | self saveEdit: text asString ]
+	toolbar updateButtons
 ]
 
 { #category : 'actions' }
@@ -145,59 +136,35 @@ OCRReviewPresenter >> enableCommentOn: anItem [
 		text: (review commentOn: anItem)
 ]
 
-{ #category : 'actions' }
+{ #category : 'editing' }
 OCRReviewPresenter >> enableReviewing: aBoolean [
 	"While editing, only Save and Cancel are possible."
 
-	notebook enabled: aBoolean.
-	changesTree enabled: aBoolean.
-	topicsTree enabled: aBoolean.
-	refreshButton enabled: aBoolean.
-	browseButton enabled: (aBoolean and: [ self canBrowseSelection ]).
-	editButton enabled: (aBoolean and: [ self canEditSelection ]).
-	saveButton enabled: aBoolean not.
-	cancelButton enabled: aBoolean not
+	tabs enableSelecting: aBoolean.
+	toolbar updateButtons
 ]
 
 { #category : 'selection' }
 OCRReviewPresenter >> hasSelectedChange [
 	"Nothing selected, or a section, package, topic or unchanged class selected, means no change to show."
 
-	^ activeTree selection isEmpty not and: [ activeTree selectedItem hasChange ]
+	tabs isSelectionEmpty ifTrue: [ ^ false ].
+	^ tabs selectedNode hasChange
 ]
 
 { #category : 'selection' }
 OCRReviewPresenter >> hasSelectedCommentable [
 
-	^ activeTree selection isEmpty not and: [ activeTree selectedItem isCommentable ]
+	tabs isSelectionEmpty ifTrue: [ ^ false ].
+	^ tabs selectedNode isCommentable
 ]
 
 { #category : 'initialization' }
 OCRReviewPresenter >> initializePresenters [
 
-	self initializeToolbar.
-	changesTree := self newChangesTreeOn: review structuralTree.
-	topicsTree := self newChangesTreeOn: review topicTree.
-	activeTree := changesTree.
-	guidePresenter := self instantiate: OCRGuidePresenter.
-	guidePresenter showGuide: review guide text warnings: review guideWarnings.
-	notebook := self newNotebook
-		            addPageTitle: 'Structure' provider: [ changesTree ];
-		            addPageTitle: 'Topics' provider: [ topicsTree ];
-		            addPageTitle: 'Guide' provider: [ guidePresenter ];
-		            yourself.
-	diff := self newDiff
-		        showOptions: false;
-		        leftLabel: 'Base';
-		        rightLabel: 'Image';
-		        yourself.
-	editor := self newCode.
-	topicText := self newText
-		             beNotEditable;
-		             yourself.
-	changeArea := SpBoxLayout newTopToBottom
-		              add: diff;
-		              yourself.
+	toolbar := self instantiate: OCRReviewToolbar on: self.
+	tabs := self instantiate: OCRReviewTabsPresenter on: review.
+	changeArea := self instantiate: OCRChangeAreaPresenter.
 	commentText := self newText
 		               placeholder: 'Comment on the selected change or topic';
 		               enabled: false;
@@ -208,86 +175,24 @@ OCRReviewPresenter >> initializePresenters [
 ]
 
 { #category : 'initialization' }
-OCRReviewPresenter >> initializeToolbar [
-	"A toolbar like the Playground's."
-
-	refreshButton := self newToolbarButton
-		                 label: 'Refresh';
-		                 icon: (self iconNamed: #glamorousRefresh);
-		                 help: 'Recompute the changes from the image, keeping the comments';
-		                 action: [ self refresh ];
-		                 yourself.
-	browseButton := self newToolbarButton
-		                label: 'Browse';
-		                icon: (self iconNamed: #glamorousBrowse);
-		                help: 'Open the System Browser on the selected method or class';
-		                action: [ self selectedChange browse ];
-		                enabled: false;
-		                yourself.
-	editButton := self newToolbarButton
-		              label: 'Edit';
-		              icon: (self iconNamed: #edit);
-		              help: 'Edit the selected method by hand';
-		              action: [ self startEditing ];
-		              enabled: false;
-		              yourself.
-	saveButton := self newToolbarButton
-		              label: 'Save';
-		              icon: (self iconNamed: #smallSave);
-		              help: 'Compile the edited method and refresh the review (Cmd+S)';
-		              action: [ self saveEdit: editor text asString ];
-		              enabled: false;
-		              yourself.
-	cancelButton := self newToolbarButton
-		                label: 'Cancel';
-		                icon: (self iconNamed: #smallCancel);
-		                help: 'Stop editing without saving';
-		                action: [ self stopEditing ];
-		                enabled: false;
-		                yourself.
-	toolbar := self newToolbar
-		           addStyle: 'stToolbar';
-		           addItem: refreshButton;
-		           addItem: (self newToolbarButton
-			            label: 'Copy review';
-			            icon: (self iconNamed: #smallCopy);
-			            help: 'Copy all comments as Markdown, ready to paste to the agent';
-			            action: [ self copyReview ];
-			            yourself);
-		           addItem: browseButton;
-		           addItem: editButton;
-		           addItem: saveButton;
-		           addItem: cancelButton;
-		           yourself
-]
-
-{ #category : 'initialization' }
 OCRReviewPresenter >> initializeWindow: aWindowPresenter [
 
+	super initializeWindow: aWindowPresenter.
 	aWindowPresenter
 		title: self windowTitle;
 		initialExtent: 1100 @ 700
 ]
 
-{ #category : 'displaying' }
-OCRReviewPresenter >> labelFor: aNode [
-	"Commented changes and topics are marked, so the reviewer sees what is already done."
+{ #category : 'editing' }
+OCRReviewPresenter >> isEditing [
 
-	(aNode isCommentable and: [ review hasCommentOn: aNode commentable ]) ifTrue: [ ^ aNode label , '   [commented]' ].
-	^ aNode label
+	^ changeArea isEditing
 ]
 
-{ #category : 'initialization' }
-OCRReviewPresenter >> newChangesTreeOn: someNodes [
+{ #category : 'selection' }
+OCRReviewPresenter >> isSelectionReviewed [
 
-	^ self newTree
-		  roots: someNodes;
-		  children: [ :node | node children ];
-		  display: [ :node | self labelFor: node ];
-		  displayIcon: [ :node | self iconNamed: node iconName ];
-		  displayColor: [ :node | self colorFor: node ];
-		  expandAll;
-		  yourself
+	^ self canMarkSelection and: [ review areAllReviewed: tabs selectedNode changesBelow ]
 ]
 
 { #category : 'actions' }
@@ -301,12 +206,12 @@ OCRReviewPresenter >> refresh [
 
 { #category : 'actions' }
 OCRReviewPresenter >> reloadReview [
-	"Recompute the review against the same base, with the stored guide."
+	"Recompute the review against the same base, with the stored guide, keeping what the reviewer did."
 
 	| newReview |
 	newReview := OCRIcebergReader reviewOfRepositoryNamed: review repositoryName against: review base.
 	newReview guide: (OCRReviewGuide forRepositoryNamed: review repositoryName).
-	newReview takeCommentsFrom: review.
+	newReview continueFrom: review.
 	review := newReview.
 	self showReview
 ]
@@ -315,49 +220,33 @@ OCRReviewPresenter >> reloadReview [
 OCRReviewPresenter >> reloadReviewSelecting: aReference [
 
 	self reloadReview.
-	self selectItemReferenced: aReference
+	tabs selectItemReferenced: aReference
 ]
 
-{ #category : 'actions' }
-OCRReviewPresenter >> saveEdit: aString [
+{ #category : 'editing' }
+OCRReviewPresenter >> saveEdit [
 	"When the method does not compile, the editor shows the error and we stay in it."
 
-	(self selectedChange compileInImage: aString notifying: editor interactionModel) ifFalse: [ ^ self ].
+	(changeArea compileEditOf: self selectedChange) ifFalse: [ ^ self ].
 	self stopEditing.
 	self refresh
-]
-
-{ #category : 'selection' }
-OCRReviewPresenter >> selectItemReferenced: aReference [
-
-	activeTree roots do: [ :root |
-		root withAllChildrenDo: [ :node |
-			(node isCommentable and: [ node commentable reference = aReference ]) ifTrue: [ ^ activeTree selectItem: node ] ] ]
 ]
 
 { #category : 'selection' }
 OCRReviewPresenter >> selectedChange [
 	"Only valid when #hasSelectedChange is true."
 
-	^ activeTree selectedItem change
+	^ tabs selectedNode change
 ]
 
 { #category : 'selection' }
 OCRReviewPresenter >> selectedCommentable [
 	"A change or a topic. Only valid when #hasSelectedCommentable is true."
 
-	^ activeTree selectedItem commentable
+	^ tabs selectedNode commentable
 ]
 
-{ #category : 'selection' }
-OCRReviewPresenter >> selectionChangedIn: aTree [
-	"The diff and the comment follow the tree that was clicked last."
-
-	activeTree := aTree.
-	self showSelection
-]
-
-{ #category : 'initialization' }
+{ #category : 'accessing - model' }
 OCRReviewPresenter >> setModelBeforeInitialization: aReview [
 
 	review := aReview.
@@ -366,101 +255,74 @@ OCRReviewPresenter >> setModelBeforeInitialization: aReview [
 
 { #category : 'showing' }
 OCRReviewPresenter >> showChange: aChange [
-	"Both diff sides are cleared first, as Iceberg does, so the diff never mixes two changes."
 
-	self showInChangeArea: diff.
-	diff
-		leftText: '';
-		rightText: ''.
-	diff
-		leftText: aChange oldSource;
-		rightText: aChange newSource.
+	changeArea showChange: aChange comparedWith: (review baseSourceOf: aChange) notes: (review notesAbout: aChange).
 	self enableCommentOn: aChange
-]
-
-{ #category : 'showing' }
-OCRReviewPresenter >> showInChangeArea: aPresenter [
-
-	changeArea
-		removeAll;
-		add: aPresenter
 ]
 
 { #category : 'showing' }
 OCRReviewPresenter >> showNothing [
 
-	self showInChangeArea: diff.
-	diff
-		leftText: '';
-		rightText: ''.
+	changeArea showNothing.
 	self disableComment
 ]
 
-{ #category : 'actions' }
+{ #category : 'showing' }
 OCRReviewPresenter >> showReview [
 	"Show the current review, after a refresh."
 
-	changesTree
-		roots: review structuralTree;
-		expandAll.
-	topicsTree
-		roots: review topicTree;
-		expandAll.
-	guidePresenter showGuide: review guide text warnings: review guideWarnings.
+	tabs showReview: review.
 	generalCommentText text: review generalComment.
 	self withWindowDo: [ :window | window title: self windowTitle ]
 ]
 
-{ #category : 'selection' }
+{ #category : 'showing' }
 OCRReviewPresenter >> showSelection [
 
-	browseButton enabled: self canBrowseSelection.
-	editButton enabled: self canEditSelection.
-	activeTree selection isEmpty ifTrue: [ ^ self showNothing ].
-	activeTree selectedItem showIn: self
+	toolbar updateButtons.
+	tabs isSelectionEmpty ifTrue: [ ^ self showNothing ].
+	tabs selectedNode showIn: self
 ]
 
 { #category : 'showing' }
 OCRReviewPresenter >> showTopic: aTopic [
 
-	topicText text: aTopic explanation.
-	self showInChangeArea: topicText.
+	changeArea showTopic: aTopic.
 	self enableCommentOn: aTopic
 ]
 
-{ #category : 'actions' }
+{ #category : 'editing' }
 OCRReviewPresenter >> startEditing [
 
-	| method |
-	method := self selectedChange methodInImage.
-	editor
-		beForMethod: method;
-		text: method sourceCode.
-	self switchToEditor
-]
-
-{ #category : 'actions' }
-OCRReviewPresenter >> stopEditing [
-
-	self switchToDiff
-]
-
-{ #category : 'actions' }
-OCRReviewPresenter >> switchToDiff [
-
-	self showInChangeArea: diff.
-	self enableReviewing: true
-]
-
-{ #category : 'actions' }
-OCRReviewPresenter >> switchToEditor [
-
-	self showInChangeArea: editor.
+	changeArea startEditing: self selectedChange methodInImage.
 	self enableReviewing: false
 ]
 
-{ #category : 'displaying' }
+{ #category : 'editing' }
+OCRReviewPresenter >> stopEditing [
+
+	changeArea stopEditing.
+	self enableReviewing: true.
+	self showSelection
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> toggleReviewed [
+	"Mark everything under the selection as reviewed; when it already is, unmark it."
+
+	| changes |
+	changes := tabs selectedNode changesBelow.
+	(review areAllReviewed: changes)
+		ifTrue: [ changes do: [ :each | review unmarkReviewed: each ] ]
+		ifFalse: [ changes do: [ :each | review markReviewed: each ] ].
+	tabs refreshTrees.
+	toolbar updateButtons
+]
+
+{ #category : 'accessing' }
 OCRReviewPresenter >> windowTitle [
 
-	^ 'Obscure Code Reviewer - ' , review repositoryName , ' - base: ' , review baseLabel
+	^ 'Obscure Code Reviewer - {1} - base: {2}' format: {
+		  review repositoryName.
+		  review baseLabel }
 ]

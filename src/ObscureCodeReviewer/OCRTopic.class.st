@@ -9,7 +9,9 @@ Class {
 	#instVars : [
 		'title',
 		'explanationLines',
-		'references'
+		'references',
+		'whys',
+		'origins'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -50,7 +52,20 @@ OCRTopic >> lists: aReference [
 	^ references includes: aReference
 ]
 
-{ #category : 'displaying' }
+{ #category : 'building' }
+OCRTopic >> origin: anOriginReference for: aReference [
+	"The code of aReference was moved or extracted from the change anOriginReference."
+
+	origins at: aReference put: anOriginReference
+]
+
+{ #category : 'accessing' }
+OCRTopic >> originOf: aReference ifNone: aBlock [
+
+	^ origins at: aReference ifAbsent: aBlock
+]
+
+{ #category : 'printing' }
 OCRTopic >> printOn: aStream [
 
 	aStream nextPutAll: self reference
@@ -75,11 +90,28 @@ OCRTopic >> setTitle: aString [
 
 	title := aString.
 	explanationLines := OrderedCollection new.
-	references := OrderedCollection new
+	references := OrderedCollection new.
+	whys := Dictionary new.
+	origins := Dictionary new
 ]
 
 { #category : 'accessing' }
 OCRTopic >> title [
 
 	^ title
+]
+
+{ #category : 'building' }
+OCRTopic >> why: aString for: aReference [
+	"Why the change aReference was made, as the agent wrote it after the reference."
+
+	aString trimBoth ifEmpty: [ ^ self ].
+	whys at: aReference put: aString trimBoth
+]
+
+{ #category : 'accessing' }
+OCRTopic >> whyOf: aReference [
+	"Empty when the agent wrote no why for it."
+
+	^ whys at: aReference ifAbsent: [ '' ]
 ]

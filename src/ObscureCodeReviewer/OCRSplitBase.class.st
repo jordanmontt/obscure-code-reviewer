@@ -24,6 +24,14 @@ OCRSplitBase class >> fromBranchNamed: aString [
 		  yourself
 ]
 
+{ #category : 'comparing' }
+OCRSplitBase >> = anObject [
+
+	self == anObject ifTrue: [ ^ true ].
+	self class = anObject class ifFalse: [ ^ false ].
+	^ branchName = anObject branchName
+]
+
 { #category : 'accessing' }
 OCRSplitBase >> branchName [
 
@@ -41,6 +49,12 @@ OCRSplitBase >> description [
 	"How I am shown in the window title and the feedback header."
 
 	^ 'split from ' , branchName
+]
+
+{ #category : 'comparing' }
+OCRSplitBase >> hash [
+
+	^ branchName hash
 ]
 
 { #category : 'initialization' }

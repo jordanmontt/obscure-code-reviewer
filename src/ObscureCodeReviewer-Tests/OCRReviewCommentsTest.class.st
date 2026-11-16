@@ -131,5 +131,6 @@ OCRReviewCommentsTest >> testFeedbackWithoutCommentsIsOnlyTheHeader [
 	| review |
 	review := self reviewWith: { (self methodChange: #a class: 'MyClass') }.
 
-	self assert: review feedback equals: 'Review of my-project, base abc1234 (last commit)' , String lf , String lf
+	self assert: review feedback equals: (String lf join: #( 'Review of my-project, base abc1234 (last commit)'
+	    '' '' ))
 ]

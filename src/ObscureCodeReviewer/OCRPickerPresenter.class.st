@@ -73,6 +73,7 @@ OCRPickerPresenter >> initializePresenters [
 { #category : 'initialization' }
 OCRPickerPresenter >> initializeWindow: aWindowPresenter [
 
+	super initializeWindow: aWindowPresenter.
 	aWindowPresenter
 		title: 'Obscure Code Reviewer';
 		initialExtent: 400 @ 450

@@ -34,10 +34,7 @@ OCRBaseChoices class >> default: aBase branchNames: someNames [
 OCRBaseChoices >> bases [
 	"The default base first, then the last commit, then the split point from each branch. A base already in the list is not repeated."
 
-	| bases |
-	bases := OrderedCollection new.
-	self candidates do: [ :each | (bases anySatisfy: [ :base | base description = each description ]) ifFalse: [ bases add: each ] ].
-	^ bases
+	^ self candidates asOrderedCollection removeDuplicates
 ]
 
 { #category : 'private' }
@@ -48,10 +45,10 @@ OCRBaseChoices >> candidates [
 		  OCRLastCommitBase new } , (self offeredBranchNames collect: [ :each | OCRSplitBase fromBranchNamed: each ])
 ]
 
-{ #category : 'testing' }
+{ #category : 'accessing' }
 OCRBaseChoices >> isDefault: aBase [
 
-	^ aBase description = defaultBase description
+	^ aBase = defaultBase
 ]
 
 { #category : 'accessing' }

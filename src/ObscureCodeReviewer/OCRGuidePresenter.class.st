@@ -10,7 +10,8 @@ Class {
 		'guideText',
 		'applyButton',
 		'warningsList',
-		'applyBlock'
+		'applyBlock',
+		'warningsLabel'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -27,7 +28,7 @@ OCRGuidePresenter >> defaultLayout [
 			   addLast: applyButton expand: false;
 			   yourself)
 		  expand: false;
-		  add: 'Warnings' expand: false;
+		  add: warningsLabel expand: false;
 		  add: warningsList height: 120;
 		  yourself
 ]
@@ -35,8 +36,8 @@ OCRGuidePresenter >> defaultLayout [
 { #category : 'initialization' }
 OCRGuidePresenter >> initialize [
 
-	applyBlock := [ :text |  ].
-	super initialize
+	super initialize.
+	applyBlock := [ :text |  ]
 ]
 
 { #category : 'initialization' }
@@ -54,6 +55,7 @@ Why the changes were made.
 		               help: 'Use this guide for the Topics tab';
 		               action: [ applyBlock value: guideText text asString ];
 		               yourself.
+	warningsLabel := self newLabel label: 'Warnings'.
 	warningsList := self newList
 ]
 

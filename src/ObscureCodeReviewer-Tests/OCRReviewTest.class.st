@@ -37,7 +37,7 @@ OCRReviewTest >> methodChange: aSelector class: aClassName package: aPackageName
 { #category : 'helpers' }
 OCRReviewTest >> namesOf: someNodes [
 
-	^ (someNodes collect: [ :each | each name ]) asArray
+	^ someNodes collect: [ :each | each name ] as: Array
 ]
 
 { #category : 'helpers' }

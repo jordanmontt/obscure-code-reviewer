@@ -55,7 +55,9 @@ OCRChangeNode >> isCommentable [
 OCRChangeNode >> label [
 	"The text shown in the tree, e.g. '+ myMethod' for an added method."
 
-	^ change kindMarker , ' ' , name
+	^ ' ' join: {
+		  change kindMarker.
+		  name }
 ]
 
 { #category : 'displaying' }

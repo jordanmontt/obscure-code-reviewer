@@ -1,10 +1,11 @@
 "
-I am a code review: the changes between a base commit and the image, for one repository, and the reviewer's comments on them.
+I am a code review: the changes between a base commit and the image, for one repository, and what the reviewer did with them: comments (an OCRReviewComments), reviewed marks and pull request edits.
 
-Comments are attached to changes by their reference (e.g. 'MyClass>>#myMethod'). There is also one general comment for the whole review.
+Comments are attached to changes and topics by their reference (e.g. 'MyClass>>#myMethod'). There is also one general comment for the whole review.
 
 	review := OCRReview
 		repositoryName: 'my-project'
+		base: OCRLastCommitBase new
 		baseLabel: 'abc1234 (last commit)'
 		changes: someChanges.
 	review comment: 'Please rename this' on: aChange.
@@ -18,9 +19,11 @@ Class {
 		'baseLabel',
 		'changes',
 		'comments',
-		'generalComment',
 		'base',
-		'guide'
+		'guide',
+		'pullRequest',
+		'reviewedChanges',
+		'lineCounts'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -37,20 +40,11 @@ OCRReview class >> repositoryName: aRepositoryName base: aBase baseLabel: aBaseL
 		  changes: someChanges
 ]
 
-{ #category : 'refreshing' }
-OCRReview >> addLostComment: aComment on: aReference [
-	"Append aComment to my general comment, saying which item it was about."
+{ #category : 'reviewed marks' }
+OCRReview >> areAllReviewed: someChanges [
+	"Nothing to review counts as not reviewed, so empty nodes are never marked."
 
-	generalComment := String streamContents: [ :stream |
-		                  generalComment trimBoth ifNotEmpty: [ :text |
-			                  stream
-				                  nextPutAll: text;
-				                  cr;
-				                  cr ].
-		                  stream
-			                  nextPutAll: aReference;
-			                  nextPutAll: ' (item no longer in diff): ';
-			                  nextPutAll: aComment trimBoth ]
+	^ someChanges isNotEmpty and: [ someChanges allSatisfy: [ :each | self isReviewed: each ] ]
 ]
 
 { #category : 'accessing' }
@@ -67,38 +61,63 @@ OCRReview >> baseLabel [
 	^ baseLabel
 ]
 
+{ #category : 'moved code' }
+OCRReview >> baseSourceOf: aChange [
+	"What the new code of aChange is compared with: the old code it was moved from, or its own old code."
+
+	^ (self movedOriginOf: aChange ifNone: [ aChange ]) oldSource
+]
+
 { #category : 'accessing' }
 OCRReview >> changes [
 
 	^ changes
 ]
 
+{ #category : 'marks' }
+OCRReview >> changesInTreeOrder [
+	"My changes in the order of the Structure tree."
+
+	| ordered |
+	ordered := OrderedCollection new.
+	self structuralTree do: [ :section | ordered addAll: section changesBelow ].
+	^ ordered
+]
+
 { #category : 'comments' }
 OCRReview >> comment: aString on: anItem [
 	"anItem is a change or a topic. An empty comment removes the comment."
 
-	aString trimBoth isEmpty ifTrue: [ ^ comments removeKey: anItem reference ifAbsent: [ self ] ].
-	comments at: anItem reference put: aString
+	comments comment: aString on: anItem
 ]
 
 { #category : 'comments' }
 OCRReview >> commentAtReference: aReference [
 
-	^ comments at: aReference
+	^ comments commentAtReference: aReference
 ]
 
 { #category : 'comments' }
 OCRReview >> commentOn: anItem [
-	"Answer my comment on anItem (a change or a topic), or an empty string."
+	"My comment on anItem (a change or a topic), or an empty string."
 
-	^ comments at: anItem reference ifAbsent: [ '' ]
+	^ comments commentOn: anItem
 ]
 
 { #category : 'comments' }
 OCRReview >> commentedReferences [
-	"The references of the changes I have a comment on, sorted."
+	"The references of the changes and topics I have a comment on, sorted."
 
-	^ comments keys asSortedCollection asArray
+	^ comments commentedReferences
+]
+
+{ #category : 'refreshing' }
+OCRReview >> continueFrom: aReview [
+	"I am a newer computation of aReview: keep what the reviewer did. Set my guide first."
+
+	self takeCommentsFrom: aReview.
+	self takeMarksFrom: aReview.
+	self takePullRequestFrom: aReview
 ]
 
 { #category : 'feedback' }
@@ -111,13 +130,13 @@ OCRReview >> feedback [
 { #category : 'comments' }
 OCRReview >> generalComment [
 
-	^ generalComment
+	^ comments general
 ]
 
 { #category : 'comments' }
 OCRReview >> generalComment: aString [
 
-	generalComment := aString
+	comments general: aString
 ]
 
 { #category : 'accessing' }
@@ -129,8 +148,10 @@ OCRReview >> guide [
 
 { #category : 'accessing' }
 OCRReview >> guide: aGuide [
+	"My pull request starts as the agent's draft in aGuide."
 
-	guide := aGuide
+	guide := aGuide.
+	pullRequest := aGuide pullRequest
 ]
 
 { #category : 'topics' }
@@ -142,7 +163,7 @@ OCRReview >> guideWarnings [
 { #category : 'comments' }
 OCRReview >> hasCommentOn: anItem [
 
-	^ comments includesKey: anItem reference
+	^ comments hasCommentOn: anItem
 ]
 
 { #category : 'refreshing' }
@@ -156,9 +177,10 @@ OCRReview >> includesItemReferenced: aReference [
 OCRReview >> initialize [
 
 	super initialize.
-	comments := Dictionary new.
-	generalComment := ''.
-	guide := OCRReviewGuide empty
+	comments := OCRReviewComments new.
+	reviewedChanges := Dictionary new.
+	lineCounts := Dictionary new.
+	self guide: OCRReviewGuide empty
 ]
 
 { #category : 'testing' }
@@ -167,10 +189,88 @@ OCRReview >> isEmpty [
 	^ changes isEmpty
 ]
 
+{ #category : 'pull request' }
+OCRReview >> isPullRequestEdited [
+	"Whether the reviewer changed the agent's draft."
+
+	^ pullRequest ~= guide pullRequest
+]
+
+{ #category : 'marks' }
+OCRReview >> isReviewed: aChange [
+
+	^ reviewedChanges includesKey: aChange reference
+]
+
+{ #category : 'line counts' }
+OCRReview >> lineCountOf: aChange [
+
+	^ lineCounts at: aChange reference ifAbsentPut: [ aChange lineCount ]
+]
+
+{ #category : 'line counts' }
+OCRReview >> lineCountUnder: aNode [
+	"The lines added and removed under aNode. Each change is diffed once: the tree asks for this on every refresh."
+
+	^ aNode changesBelow inject: 0 into: [ :sum :each | sum + (self lineCountOf: each) ]
+]
+
+{ #category : 'marks' }
+OCRReview >> markReviewed: aChange [
+
+	reviewedChanges at: aChange reference put: aChange
+]
+
+{ #category : 'moved code' }
+OCRReview >> movedOriginOf: aChange ifNone: aBlock [
+	"The change the guide says the code of aChange was moved or extracted from, when it is in my changes."
+
+	| reference |
+	reference := guide originOf: aChange reference ifNone: [ ^ aBlock value ].
+	^ changes detect: [ :each | each reference = reference ] ifNone: aBlock
+]
+
+{ #category : 'guide' }
+OCRReview >> notesAbout: aChange [
+	"What the guide says about aChange alone: why, and where its code came from. Empty when nothing."
+
+	| notes origin |
+	notes := OrderedCollection new.
+	(guide whyOf: aChange reference) ifNotEmpty: [ :why | notes add: 'Why: ' , why ].
+	origin := self movedOriginOf: aChange ifNone: [ ^ String cr join: notes ].
+	notes add: ('Moved from {1}: the left side shows its code before the move.' format: { origin reference }).
+	^ String cr join: notes
+]
+
+{ #category : 'pull request' }
+OCRReview >> pullRequest [
+	"The pull request description, as the reviewer edited it."
+
+	^ pullRequest
+]
+
+{ #category : 'pull request' }
+OCRReview >> pullRequest: aPullRequest [
+
+	pullRequest := aPullRequest
+]
+
 { #category : 'accessing' }
 OCRReview >> repositoryName [
 
 	^ repositoryName
+]
+
+{ #category : 'refreshing' }
+OCRReview >> reviewedChangeReferenced: aReference ifNone: aBlock [
+
+	^ reviewedChanges at: aReference ifAbsent: aBlock
+]
+
+{ #category : 'marks' }
+OCRReview >> reviewedCount [
+
+	^ changes count: [ :each | self isReviewed: each ]
 ]
 
 { #category : 'initialization' }
@@ -189,16 +289,30 @@ OCRReview >> structuralTree [
 	^ OCRStructuralTreeBuilder new treeFor: changes
 ]
 
-{ #category : 'refreshing' }
+{ #category : 'comments' }
 OCRReview >> takeCommentsFrom: aReview [
 	"Keep the comments of aReview, an older review of the same repository. Set my guide first.
 	Comments on changes or topics that I no longer have are moved into my general comment, so nothing is lost."
 
-	generalComment := aReview generalComment.
+	comments general: aReview generalComment.
 	aReview commentedReferences do: [ :reference |
 		(self includesItemReferenced: reference)
-			ifTrue: [ comments at: reference put: (aReview commentAtReference: reference) ]
-			ifFalse: [ self addLostComment: (aReview commentAtReference: reference) on: reference ] ]
+			ifTrue: [ comments comment: (aReview commentAtReference: reference) onReference: reference ]
+			ifFalse: [ comments addLostComment: (aReview commentAtReference: reference) on: reference ] ]
+]
+
+{ #category : 'refreshing' }
+OCRReview >> takeMarksFrom: aReview [
+	"A change stays marked as reviewed only while its code is the same."
+
+	changes do: [ :each | (self was: each reviewedIn: aReview) ifTrue: [ self markReviewed: each ] ]
+]
+
+{ #category : 'refreshing' }
+OCRReview >> takePullRequestFrom: aReview [
+	"The reviewer's edits win over a new draft of the agent."
+
+	aReview isPullRequestEdited ifTrue: [ pullRequest := aReview pullRequest ]
 ]
 
 { #category : 'topics' }
@@ -206,4 +320,25 @@ OCRReview >> topicTree [
 	"Answer my changes grouped by the topics of my guide."
 
 	^ (OCRTopicTreeBuilder changes: changes guide: guide) tree
+]
+
+{ #category : 'marks' }
+OCRReview >> unmarkReviewed: aChange [
+
+	reviewedChanges removeKey: aChange reference ifAbsent: [ ^ self ]
+]
+
+{ #category : 'marks' }
+OCRReview >> unreviewedChanges [
+	"In the order of the Structure tree."
+
+	^ self changesInTreeOrder reject: [ :each | self isReviewed: each ]
+]
+
+{ #category : 'refreshing' }
+OCRReview >> was: aChange reviewedIn: aReview [
+
+	| old |
+	old := aReview reviewedChangeReferenced: aChange reference ifNone: [ ^ false ].
+	^ old hasSameSourcesAs: aChange
 ]

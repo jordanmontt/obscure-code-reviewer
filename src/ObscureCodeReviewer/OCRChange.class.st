@@ -55,7 +55,7 @@ OCRChange class >> removal [
 		  yourself
 ]
 
-{ #category : 'accessing' }
+{ #category : 'initialization' }
 OCRChange >> beExtension [
 	"Mark me as an extension method: my class is defined in another package."
 
@@ -67,12 +67,6 @@ OCRChange >> browse [
 	"Open the System Browser on me. Only valid when #isInImage is true."
 
 	^ self subclassResponsibility
-]
-
-{ #category : 'accessing' }
-OCRChange >> className [
-
-	^ className
 ]
 
 { #category : 'accessing' }
@@ -89,6 +83,13 @@ OCRChange >> groupName [
 	^ className
 ]
 
+{ #category : 'comparing' }
+OCRChange >> hasSameSourcesAs: aChange [
+	"Whether aChange (usually a newer version of me) shows exactly the same code."
+
+	^ oldSource = aChange oldSource and: [ newSource = aChange newSource ]
+]
+
 { #category : 'initialization' }
 OCRChange >> initialize [
 
@@ -102,6 +103,13 @@ OCRChange >> initialize [
 OCRChange >> isAddition [
 
 	^ kind = #addition
+]
+
+{ #category : 'testing' }
+OCRChange >> isBinary [
+	"Whether I am a file that is not text, so there is no diff to show (see OCRBinaryFileChange)."
+
+	^ false
 ]
 
 { #category : 'testing' }
@@ -121,6 +129,12 @@ OCRChange >> isEditable [
 OCRChange >> isExtension [
 
 	^ isExtension
+]
+
+{ #category : 'testing' }
+OCRChange >> isFileChange [
+
+	^ false
 ]
 
 { #category : 'testing' }
@@ -176,6 +190,19 @@ OCRChange >> kindMarker [
 	self isAddition ifTrue: [ ^ '+' ].
 	self isRemoval ifTrue: [ ^ '-' ].
 	^ '~'
+]
+
+{ #category : 'accessing' }
+OCRChange >> lineCount [
+	"The lines added and removed between my two sources."
+
+	| count |
+	count := 0.
+	(TextDiffBuilder from: oldSource to: newSource)
+		patchSequenceDoIfMatch: [ :line |  ]
+		ifInsert: [ :line | count := count + 1 ]
+		ifRemove: [ :line | count := count + 1 ].
+	^ count
 ]
 
 { #category : 'displaying' }
@@ -238,4 +265,11 @@ OCRChange >> reference [
 	"How I am written in review feedback and in review guides, e.g. 'MyClass>>#myMethod'."
 
 	^ self subclassResponsibility
+]
+
+{ #category : 'displaying' }
+OCRChange >> showContentsIn: aChangeArea comparedWith: aBaseSource [
+	"Show the diff from aBaseSource, my old source or the code I was moved from (see OCRReview>>#baseSourceOf:), to my new source."
+
+	aChangeArea showDiffFrom: aBaseSource to: newSource
 ]

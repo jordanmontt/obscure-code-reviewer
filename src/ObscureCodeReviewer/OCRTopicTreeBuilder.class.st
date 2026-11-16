@@ -25,15 +25,26 @@ OCRTopicTreeBuilder class >> changes: someChanges guide: aGuide [
 		  yourself
 ]
 
-{ #category : 'private' }
+{ #category : 'warnings' }
 OCRTopicTreeBuilder >> addWarningsAbout: aReference in: aTopic to: someWarnings [
 
-	| owner |
-	(self isInDiff: aReference) ifFalse: [ ^ someWarnings add: aReference , ' (in "' , aTopic title , '") is not in the diff' ].
+	| owner origin |
+	(self isInDiff: aReference) ifFalse: [
+		someWarnings add: ('{1} (in "{2}") is not in the diff' format: {
+			 aReference.
+			 aTopic title }).
+		^ self ].
+	origin := aTopic originOf: aReference ifNone: [ aReference ].
+	(self isInDiff: origin) ifFalse: [
+		someWarnings add: ('{1} is moved from {2}, which is not in the diff' format: {
+			 aReference.
+			 origin }) ].
 	owner := guide firstTopicListing: aReference ifNone: [ aTopic ].
 	owner == aTopic ifFalse: [
-		someWarnings add:
-			aReference , ' is listed in "' , owner title , '" and in "' , aTopic title , '"; it stays in "' , owner title , '"' ]
+		someWarnings add: ('{1} is listed in "{2}" and in "{3}"; it stays in "{2}"' format: {
+			 aReference.
+			 owner title.
+			 aTopic title }) ]
 ]
 
 { #category : 'private' }
@@ -65,9 +76,9 @@ OCRTopicTreeBuilder >> nodeForChange: aChange [
 
 	^ OCRChangeNode
 		  named: aChange reference
-		  iconName: (aChange isMethodChange
-			   ifTrue: [ #page ]
-			   ifFalse: [ #class ])
+		  iconName: (aChange isClassChange
+			   ifTrue: [ #class ]
+			   ifFalse: [ #page ])
 		  change: aChange
 ]
 
@@ -91,7 +102,7 @@ OCRTopicTreeBuilder >> setChanges: someChanges guide: aGuide [
 OCRTopicTreeBuilder >> tree [
 
 	| nodes uncovered |
-	nodes := (guide topics collect: [ :each | self nodeForTopic: each ]) asOrderedCollection.
+	nodes := guide topics collect: [ :each | self nodeForTopic: each ] as: OrderedCollection.
 	uncovered := self uncoveredChanges.
 	uncovered ifNotEmpty: [ nodes add: (self uncoveredNodeFor: uncovered) ].
 	^ nodes

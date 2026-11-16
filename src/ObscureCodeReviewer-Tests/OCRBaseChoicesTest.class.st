@@ -11,7 +11,7 @@ Class {
 { #category : 'helpers' }
 OCRBaseChoicesTest >> descriptionsWithDefault: aBase branchNames: someNames [
 
-	^ ((OCRBaseChoices default: aBase branchNames: someNames) bases collect: [ :each | each description ]) asArray
+	^ (OCRBaseChoices default: aBase branchNames: someNames) bases collect: [ :each | each description ] as: Array
 ]
 
 { #category : 'tests' }
@@ -39,7 +39,7 @@ OCRBaseChoicesTest >> testOnlyTheDefaultIsLabeledAsDefault [
 	choices := OCRBaseChoices default: (OCRSplitBase fromBranchNamed: 'main') branchNames: #( 'dev' ).
 
 	self
-		assert: (choices bases collect: [ :each | choices labelFor: each ]) asArray
+		assert: (choices bases collect: [ :each | choices labelFor: each ] as: Array)
 		equals: #( 'split from main (default)' 'last commit' 'split from dev' )
 ]
 

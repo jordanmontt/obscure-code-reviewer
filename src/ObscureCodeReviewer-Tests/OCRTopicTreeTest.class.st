@@ -11,7 +11,7 @@ Class {
 { #category : 'helpers' }
 OCRTopicTreeTest >> labelsOf: someNodes [
 
-	^ (someNodes collect: [ :each | each label ]) asArray
+	^ someNodes collect: [ :each | each label ] as: Array
 ]
 
 { #category : 'helpers' }

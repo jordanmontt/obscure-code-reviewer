@@ -34,10 +34,20 @@ OCRTreeNode class >> named: aString iconName: aSymbol [
 		  yourself
 ]
 
-{ #category : 'accessing' }
+{ #category : 'adding' }
 OCRTreeNode >> addChild: aNode [
 
-	^ children add: aNode
+	children add: aNode
+]
+
+{ #category : 'accessing' }
+OCRTreeNode >> changesBelow [
+	"The changes of me and of all my children."
+
+	| all |
+	all := OrderedCollection new.
+	self withAllChildrenDo: [ :each | each hasChange ifTrue: [ all add: each change ] ].
+	^ all
 ]
 
 { #category : 'accessing' }
