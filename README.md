@@ -10,7 +10,9 @@ Review code changes inside a Pharo image. Built for reviewing what a coding agen
 
 It shows everything between a base commit and the image, organized in a tree. You read the diffs, mark what you reviewed, write comments, and click **Copy review** to get Markdown you can paste back to the agent.
 
-<!-- SCREENSHOT: drop review.webp here (top: the Structure tab with a method diff; bottom: the Topics tab with reviewed marks and comments). -->
+<p align="center">
+  <img width="600" alt="The review window: the Structure tab with a method diff, then the Topics tab with reviewed marks and comments" src="https://github.com/user-attachments/assets/92850147-240b-41ab-b423-bc93fe234bec" />
+</p>
 
 ## Install
 
