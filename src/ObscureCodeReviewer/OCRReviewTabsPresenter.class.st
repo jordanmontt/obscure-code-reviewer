@@ -184,6 +184,16 @@ OCRReviewTabsPresenter >> showReview: aReview [
 ]
 
 { #category : 'events' }
+OCRReviewTabsPresenter >> whenChangeActivatedDo: aBlock [
+	"aBlock receives the change of a node double-clicked in either tree. Sections, packages, topics and unchanged classes have no change and are ignored."
+
+	{
+		changesTree.
+		topicsTree } do: [ :tree |
+		tree whenActivatedDo: [ :selection | selection selectedItem hasChange ifTrue: [ aBlock value: selection selectedItem change ] ] ]
+]
+
+{ #category : 'events' }
 OCRReviewTabsPresenter >> whenGuideAppliedDo: aBlock [
 	"aBlock receives the guide text when the reviewer clicks Apply in the Guide tab."
 

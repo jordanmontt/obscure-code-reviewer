@@ -39,7 +39,7 @@ The repository must be registered in Iceberg, with a local checkout and its pack
 Everything between a **base commit** and the **image**, including changes not committed yet:
 
 - the code of the loaded packages (methods, class definitions, class comments);
-- the other files of the repository (README, docs, packages not loaded), compared with the disk. A brand-new file shows up once it is committed. Markdown files are rendered with Microdown (switch to **Source** for the text diff). Binary files (pictures, videos, archives) show their sizes instead of a diff, and pictures are shown side by side.
+- the other files of the repository (README, docs, packages not loaded), compared with the disk. A brand-new file shows up once it is committed. Markdown files show the text diff, or, with **Rendered**, both versions rendered with Microdown. Binary files (pictures, videos, archives) show their sizes instead of a diff, and pictures are shown side by side.
 
 The base is chosen for you (the window title says which one):
 
@@ -56,6 +56,7 @@ The picker lets you choose another base.
 ## The window
 
 - **Structure:** Code, Tests, Baseline and Files, then package → class → method. Each node shows its kind (`+` added, `~` modified, `-` removed) and the lines changed under it; commented nodes are bold.
+- **The right side:** the diff of the selected change, or the code alone when it was added or removed. **Double-click** a change to open it in its own large window, for long lines and long methods.
 - **Topics:** the changes grouped by purpose, from the agent's review guide (below). Changes no topic mentions are under "Not covered by any topic".
 - **Guide:** the guide itself, editable (**Apply**), with warnings about it.
 - **Pull request:** the title and description of the future pull request; the agent drafts them, you edit them.

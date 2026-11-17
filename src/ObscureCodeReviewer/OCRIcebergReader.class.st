@@ -113,8 +113,8 @@ OCRIcebergReader >> changeFrom: aNode [
 		          kind: (self kindOf: operation);
 		          packageName: (self packageNameOf: aNode);
 		          className: (self classNameOf: aNode);
-		          oldSource: operation rightContents;
-		          newSource: operation leftContents;
+		          oldSource: (self oldSourceOf: operation);
+		          newSource: (self newSourceOf: operation);
 		          yourself.
 	(self isExtension: aNode) ifTrue: [ change beExtension ].
 	^ change
@@ -265,6 +265,22 @@ OCRIcebergReader >> newChangeFor: aDefinition [
 ]
 
 { #category : 'reading' }
+OCRIcebergReader >> newSourceOf: anOperation [
+
+	anOperation isRemoval ifTrue: [ ^ '' ].
+	^ self sourceOf: anOperation definition
+]
+
+{ #category : 'reading' }
+OCRIcebergReader >> oldSourceOf: anOperation [
+	"Empty for an addition. Iceberg keeps the old definition of a modification apart (IceModification>>#rightContents)."
+
+	anOperation isAddition ifTrue: [ ^ '' ].
+	anOperation isRemoval ifTrue: [ ^ self sourceOf: anOperation definition ].
+	^ self sourceOf: anOperation oldDefinition
+]
+
+{ #category : 'reading' }
 OCRIcebergReader >> packageNameOf: aNode [
 
 	| current |
@@ -286,6 +302,17 @@ OCRIcebergReader >> reviewOf: aRepository against: aBase [
 			   aBase description })
 		  changes:
 		  (self changesIn: (IceDiff from: aRepository workingCopy to: baseCommit)) , (self fileChangesIn: aRepository since: baseCommit)
+]
+
+{ #category : 'reading' }
+OCRIcebergReader >> sourceOf: aDefinition [
+	"Iceberg's contents (IceMethodContainerDefinition>>#contents), except that a class definition is printed in the fluid format the System Browser shows (see OCRClassDefinitionPrinter). Traits keep Iceberg's format."
+
+	| contents |
+	contents := aDefinition contents.
+	(aDefinition isClassDefinition and: [ contents isNotEmpty ]) ifFalse: [ ^ contents ].
+	aDefinition isMeta ifTrue: [ ^ OCRClassDefinitionPrinter classSideSourceOf: aDefinition asMCDefinition ].
+	^ OCRClassDefinitionPrinter sourceOf: aDefinition asMCDefinition
 ]
 
 { #category : 'bases' }

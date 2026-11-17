@@ -92,6 +92,7 @@ OCRReviewPresenter >> commentChanged: aString [
 OCRReviewPresenter >> connectPresenters [
 
 	tabs whenSelectionChangedDo: [ self showSelection ].
+	tabs whenChangeActivatedDo: [ :change | self openChangeInWindow: change ].
 	tabs whenGuideAppliedDo: [ :text | self applyGuide: text ].
 	tabs whenPullRequestChangedDo: [ :pullRequest | review pullRequest: pullRequest ].
 	changeArea whenSaveRequestedDo: [ self saveEdit ].
@@ -193,6 +194,19 @@ OCRReviewPresenter >> isEditing [
 OCRReviewPresenter >> isSelectionReviewed [
 
 	^ self canMarkSelection and: [ review areAllReviewed: tabs selectedNode changesBelow ]
+]
+
+{ #category : 'showing' }
+OCRReviewPresenter >> openChangeInWindow: aChange [
+	"A double-clicked change opens alone in a large window, read-only, for long lines and long methods. Several can stay open side by side."
+
+	| area |
+	area := OCRChangeAreaPresenter newApplication: self application.
+	area showChange: aChange comparedWith: (review baseSourceOf: aChange) notes: (review notesAbout: aChange).
+	area asWindow
+		title: aChange reference;
+		initialExtent: 1200 @ 800;
+		open
 ]
 
 { #category : 'actions' }

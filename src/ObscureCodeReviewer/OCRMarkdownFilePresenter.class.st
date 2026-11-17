@@ -1,5 +1,5 @@
 "
-I show a changed Markdown file (an OCRMarkdownFileChange): rendered with Microdown, the base commit on the left and the disk on the right, or, with Source, the text diff that shows exactly which lines changed.
+I show a changed Markdown file (an OCRMarkdownFileChange): by default, with Source, the text diff that shows exactly which lines changed; with Rendered, the file rendered with Microdown, the base commit on the left and the disk on the right.
 
 The choice stays while the reviewer moves from one Markdown file to another.
 "
@@ -21,7 +21,7 @@ Class {
 { #category : 'initialization' }
 OCRMarkdownFilePresenter >> connectPresenters [
 
-	renderedButton whenChangedDo: [ self showLayout ]
+	sourceButton whenChangedDo: [ self showLayout ]
 ]
 
 { #category : 'initialization' }
@@ -33,8 +33,9 @@ OCRMarkdownFilePresenter >> initializePresenters [
 	sourceButton := self newRadioButton
 		                label: 'Source';
 		                yourself.
-	renderedButton associatedRadioButtons: { sourceButton }.
-	renderedButton state: true.
+	sourceButton associatedRadioButtons: { renderedButton }.
+	sourceButton state: true.
+	
 	basePresenter := self instantiate: MicrodownPresenter.
 	diskPresenter := self instantiate: MicrodownPresenter.
 	diff := self newDiff
@@ -84,12 +85,12 @@ OCRMarkdownFilePresenter >> showLayout [
 		 spacing: 5;
 		 add: (SpBoxLayout newLeftToRight
 			  spacing: 10;
-			  add: renderedButton expand: false;
 			  add: sourceButton expand: false;
+			  add: renderedButton expand: false;
 			  yourself)
 		 expand: false;
-		 add: (renderedButton state
-			  ifTrue: [ self renderedLayout ]
-			  ifFalse: [ diff ]);
+		 add: (sourceButton state
+			  ifTrue: [ diff ]
+			  ifFalse: [ self renderedLayout ]);
 		 yourself)
 ]

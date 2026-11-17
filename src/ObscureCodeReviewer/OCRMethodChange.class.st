@@ -12,6 +12,17 @@ Class {
 	#tag : 'Model'
 }
 
+{ #category : 'displaying' }
+OCRMethodChange >> behaviorForHighlighting [
+	"The class my source is highlighted for, so its instance variables are known; Object when my class is no longer in the image."
+
+	| instanceSide |
+	instanceSide := self class environment at: (className copyUpTo: Character space) asSymbol ifAbsent: [ ^ Object ].
+	^ (className endsWith: ' class')
+		  ifTrue: [ instanceSide class ]
+		  ifFalse: [ instanceSide ]
+]
+
 { #category : 'image' }
 OCRMethodChange >> browse [
 	"Not tested: it opens a window."
@@ -47,6 +58,13 @@ OCRMethodChange >> isMethodChange [
 	^ true
 ]
 
+{ #category : 'displaying' }
+OCRMethodChange >> isProtocolLine: aString [
+	"Whether aString is the line Iceberg writes above a method: its protocol between double quotes."
+
+	^ aString size >= 2 and: [ aString first = $" and: [ aString last = $" and: [ (aString occurrencesOf: $") = 2 ] ] ]
+]
+
 { #category : 'image' }
 OCRMethodChange >> methodInImage [
 	"The method in the image. Not tested: it reads the live system."
@@ -78,4 +96,23 @@ OCRMethodChange >> selector [
 OCRMethodChange >> selector: aSymbol [
 
 	selector := aSymbol
+]
+
+{ #category : 'displaying' }
+OCRMethodChange >> show: aSource aloneTitled: aTitle in: aChangeArea [
+	"Iceberg writes my protocol as a comment line above my code (IceMethodDefinition>>#contents). In a diff that line shows a change of protocol; shown alone, the protocol goes into the title and the code starts at the selector."
+
+	| firstLine |
+	firstLine := aSource lines ifEmpty: [ '' ] ifNotEmpty: [ :lines | lines first ].
+	(self isProtocolLine: firstLine) ifFalse: [ ^ super show: aSource aloneTitled: aTitle in: aChangeArea ].
+	aChangeArea
+		showSource: ((aSource allButFirst: firstLine size) trimLeft: [ :each | String crlf includes: each ])
+		titled: aTitle , ' — protocol: ' , (firstLine copyFrom: 2 to: firstLine size - 1)
+		of: self
+]
+
+{ #category : 'displaying' }
+OCRMethodChange >> styleSource: aCodePresenter [
+
+	aCodePresenter beForBehavior: self behaviorForHighlighting
 ]

@@ -268,8 +268,24 @@ OCRChange >> reference [
 ]
 
 { #category : 'displaying' }
-OCRChange >> showContentsIn: aChangeArea comparedWith: aBaseSource [
-	"Show the diff from aBaseSource, my old source or the code I was moved from (see OCRReview>>#baseSourceOf:), to my new source."
+OCRChange >> show: aSource aloneTitled: aTitle in: aChangeArea [
 
+	aChangeArea showSource: aSource titled: aTitle of: self
+]
+
+{ #category : 'displaying' }
+OCRChange >> showContentsIn: aChangeArea comparedWith: aBaseSource [
+	"Show the diff from aBaseSource, my old source or the code I was moved from (see OCRReview>>#baseSourceOf:), to my new source.
+	Added or removed, I have one side only, so that side is shown alone; code moved from another change keeps its diff."
+
+	(self isAddition and: [ aBaseSource isEmpty ]) ifTrue: [ ^ self show: newSource aloneTitled: 'Added' in: aChangeArea ].
+	self isRemoval ifTrue: [ ^ self show: aBaseSource aloneTitled: 'Removed' in: aChangeArea ].
 	aChangeArea showDiffFrom: aBaseSource to: newSource
+]
+
+{ #category : 'displaying' }
+OCRChange >> styleSource: aCodePresenter [
+	"Set how aCodePresenter highlights my source when it is shown alone. By default it does not: a class definition comes with its comment below it, and a file is not Smalltalk code. The diff is not highlighted either."
+
+	aCodePresenter withoutSyntaxHighlight
 ]

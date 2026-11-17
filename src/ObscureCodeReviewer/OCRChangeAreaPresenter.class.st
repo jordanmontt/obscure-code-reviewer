@@ -1,6 +1,7 @@
 "
-I am the right side of the review window. I show one of:
+I am the right side of the review window, and the whole of the window that opens when a change is double-clicked. I show one of:
 - the diff of the selected change (base | image), with what the guide says about it above;
+- an added or removed change alone, in one read-only code pane, as it has one side only (see #showSource:titled:of:);
 - a Markdown file, rendered or as a diff (see OCRMarkdownFilePresenter);
 - a binary file (see OCRBinaryFilePresenter);
 - the explanation of the selected topic;
@@ -16,7 +17,9 @@ Class {
 		'notesText',
 		'binaryFilePresenter',
 		'isEditing',
-		'markdownPresenter'
+		'markdownPresenter',
+		'sourceText',
+		'sourceTitle'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -38,6 +41,7 @@ OCRChangeAreaPresenter >> initializePresenters [
 		        leftLabel: 'Base';
 		        rightLabel: 'Image';
 		        yourself.
+	sourceText := self newCode.
 	editor := self newCode.
 	topicText := self newText
 		             beNotEditable;
@@ -57,6 +61,12 @@ OCRChangeAreaPresenter >> initializePresenters [
 OCRChangeAreaPresenter >> isEditing [
 
 	^ isEditing
+]
+
+{ #category : 'testing' }
+OCRChangeAreaPresenter >> isShowingDiff [
+
+	^ self layout presenters includes: diff
 ]
 
 { #category : 'showing' }
@@ -115,10 +125,42 @@ OCRChangeAreaPresenter >> showNothing [
 ]
 
 { #category : 'showing' }
+OCRChangeAreaPresenter >> showSource: aString titled: aTitle of: aChange [
+	"A new code presenter each time: aChange sets how it highlights (see OCRChange>>#styleSource:), and that setting would stay for the next change.
+	The title and the code are added one by one: Spec cannot add a layout to the layout of an open window, only presenters."
+
+	sourceTitle := self newLabel
+		               label: aTitle;
+		               yourself.
+	sourceText := self newCode
+		              beNotEditable;
+		              yourself.
+	aChange styleSource: sourceText.
+	sourceText text: aString.
+	self layout
+		add: sourceTitle expand: false;
+		add: sourceText
+]
+
+{ #category : 'showing' }
 OCRChangeAreaPresenter >> showTopic: aTopic [
 
 	topicText text: aTopic explanation.
 	self show: topicText
+]
+
+{ #category : 'testing' }
+OCRChangeAreaPresenter >> shownSource [
+	"The source shown alone, for an added or removed change."
+
+	^ sourceText text asString
+]
+
+{ #category : 'testing' }
+OCRChangeAreaPresenter >> shownSourceTitle [
+	"The title of the source shown alone, for an added or removed change."
+
+	^ sourceTitle label
 ]
 
 { #category : 'editing' }

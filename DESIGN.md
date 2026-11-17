@@ -6,8 +6,8 @@ A small Spec 2 application for Pharo 15 to review code changes (typically writte
 
 A review is **everything between a base commit and the current image**, as computed by Iceberg, plus the other files of the repository:
 
-- **Code** of the packages loaded in the image: Iceberg's diff between the base commit and the image (`OCRMethodChange`, `OCRClassChange`).
-- **Files** (`OCRFileChange`): every other file (README, DESIGN.md, `.properties`, the files of packages that are not loaded), compared as a whole between the base commit and the disk. Only files that the base commit or the last commit has are compared, so a brand-new file shows up once it is committed. A file that is not text on both sides (not UTF-8, or with a NUL byte) is binary (`OCRBinaryFileChange`): instead of a diff, the window shows its kind and sizes (e.g. `Binary file, modified: 1.20 KB → 2.00 KB`), and for a picture (PNG, JPEG, GIF, BMP) the base and disk versions side by side. A Markdown file (`.md`, `.markdown`, an `OCRMarkdownFileChange`) is shown rendered with Microdown (`MicrodownPresenter`), base and disk side by side; **Source** switches to the text diff, and the choice stays while moving between Markdown files.
+- **Code** of the packages loaded in the image: Iceberg's diff between the base commit and the image (`OCRMethodChange`, `OCRClassChange`). Class definitions are printed in the fluid format the System Browser shows (`Object << #Foo slots: {…}; tag: …; package: …`), with the comment below, instead of Iceberg's old `subclass:instanceVariableNames:…` format. The base version of a class is not in the image, so `OCRClassDefinitionPrinter` prints both sides from the Monticello definitions Iceberg keeps, following Pharo's `FluidClassDefinitionPrinter` (tests compare the two on real classes); class variables stay in Monticello's sorted order, so the diff is stable. Traits keep Iceberg's format.
+- **Files** (`OCRFileChange`): every other file (README, DESIGN.md, `.properties`, the files of packages that are not loaded), compared as a whole between the base commit and the disk. Only files that the base commit or the last commit has are compared, so a brand-new file shows up once it is committed. A file that is not text on both sides (not UTF-8, or with a NUL byte) is binary (`OCRBinaryFileChange`): instead of a diff, the window shows its kind and sizes (e.g. `Binary file, modified: 1.20 KB → 2.00 KB`), and for a picture (PNG, JPEG, GIF, BMP) the base and disk versions side by side. A Markdown file (`.md`, `.markdown`, an `OCRMarkdownFileChange`) shows the text diff (**Source**, the default); **Rendered** switches to Microdown (`MicrodownPresenter`), base and disk side by side, and the choice stays while moving between Markdown files.
 
 Supported bases (`OCRLastCommitBase`, `OCRSplitBase`):
 
@@ -98,6 +98,8 @@ The title and body of the pull request the changes will become (`OCRPullRequest`
 ```
 
 - Side-by-side diff (`SpDiffPresenter`), old on the left, new on the right.
+- An added or removed change has one side only, so it is shown alone, in one read-only code pane titled **Added** or **Removed**. A method is highlighted for its class, and the protocol line Iceberg writes above it (`"accessing"`) moves into the title (`Added — protocol: accessing`); in a diff that line stays, as it shows a change of protocol. Class definitions (which carry their comment below) and files are not highlighted. Code moved from another change (`<-` in the guide) keeps its diff.
+- Double-clicking a change in a tree opens it alone in its own large, read-only window (an `OCRChangeAreaPresenter`), titled with its reference: for long lines, which the diff does not wrap, and long methods. Several can stay open side by side.
 - Items with a comment are bold and marked `[commented]` in the tree.
 - Each tab explains itself when the mouse is over it.
 
