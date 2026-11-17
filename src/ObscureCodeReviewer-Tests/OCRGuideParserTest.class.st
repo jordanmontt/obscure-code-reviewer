@@ -128,3 +128,36 @@ OCRGuideParserTest >> testTheRestOfAChangeLineIsWhy [
 	self assert: (guide whyOf: 'A class>>#b') equals: 'answers a copy'.
 	self assert: (guide whyOf: 'A') equals: ''
 ]
+
+{ #category : 'tests' }
+OCRGuideParserTest >> testTopicsLineEndsThePullRequest [
+
+	| guide |
+	guide := OCRReviewGuide fromText: 'Title: Add help text to notebook pages
+Notebook pages can now have a help text.
+
+# Goal
+- `SpNotebookPage>>#help:` sets the help text.
+
+# Main changes
+- A>>#a is new.
+
+Topics:
+
+# Help text for notebook pages
+Why: a page tab could show no tooltip.
+- SpNotebookPage>>#help:
+# Clean up
+- A>>#a'.
+
+	self assert: (guide topics collect: [ :each | each title ] as: Array) equals: #( 'Help text for notebook pages'
+	   'Clean up' ).
+	self assert: guide topics first references asArray equals: #( 'SpNotebookPage>>#help:' ).
+	self assert: guide topics second references asArray equals: #( 'A>>#a' ).
+	self assert: guide pullRequest title equals: 'Add help text to notebook pages'.
+	self
+		assert: guide pullRequest body
+		equals:
+			(String cr join: #( 'Notebook pages can now have a help text.' '' '# Goal' '- `SpNotebookPage>>#help:` sets the help text.'
+				    '' '# Main changes' '- A>>#a is new.' ))
+]

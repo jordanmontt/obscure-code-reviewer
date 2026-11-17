@@ -70,26 +70,32 @@ Hover a tab to see what it is for. Comments and marks live in memory while the w
 
 ## The review guide (for agents)
 
-The agent stores a Markdown guide through the image (for example over MCP):
+The agent gives a Markdown guide to the review window when it opens it (for example over MCP). The guide is not stored: it lives as long as the window.
 
 ```smalltalk
-OCRReviewGuide forRepositoryNamed: 'my-project' put: 'Title: Parse tokens lazily
+(OCRReviewPresenter
+	onRepositoryNamed: 'my-project'
+	guide: (OCRReviewGuide fromText: 'Title: Parse tokens lazily
 The parser read the whole stream for every token.
+
+# Goal
+`MyParser>>#nextToken` reads one token at a time.
+
+Topics:
 
 # Parse tokens lazily
 Why: the stream was re-scanned for every token.
 - MyParser>>#nextToken reads one token, not the whole stream
 - MyToken
 - MyToken>>#value <- MyParser>>#tokenValueAt: extracted from the parser
-- README.md'.
+- README.md')) open
 ```
 
-- Before the first topic: the pull request title and description.
-- `# ` starts a topic, the lines below explain it, `- ` lines list its changes.
+- Before the `Topics:` line: the pull request title and description, as written; its `#` headings and `- ` lines are not topics or changes.
+- After it, `# ` starts a topic, the lines below explain it, `- ` lines list its changes.
 - After a change: why it was made, and `<- Other>>#ref` when its code was moved from another change (the diff then compares with that code).
 
 The `pharo-review` agent skill describes the whole workflow; `DESIGN.md` describes the tool in detail.
-
 ## Development
 
 - Packages: `ObscureCodeReviewer` (Model and UI tags), `ObscureCodeReviewer-Tests`, `BaselineOfObscureCodeReviewer`.

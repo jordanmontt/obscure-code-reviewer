@@ -86,7 +86,7 @@ OCRReviewToolbar >> initializeReviewingButtons [
 	refreshButton := self newToolbarButton
 		                 label: 'Refresh';
 		                 icon: (self iconNamed: #glamorousRefresh);
-		                 help: 'Recompute the changes from the image and re-read the guide, keeping comments and marks';
+		                 help: 'Recompute the changes from the image, keeping the guide, comments and marks';
 		                 action: [ reviewPresenter refresh ];
 		                 yourself.
 	reviewedButton := self newToolbarButton

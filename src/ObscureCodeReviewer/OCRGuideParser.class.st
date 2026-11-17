@@ -4,13 +4,18 @@ I read a review guide written in Markdown and answer an OCRReviewGuide.
 	Title: Add topics to the review
 	The agent groups its changes by purpose.
 
+	# Goal
+	The reviewer reads the changes one purpose at a time.
+
+	Topics:
+
 	# Read the guide
 	Why: the agent explains its changes as topics.
 	- OCRGuideParser>>#parse: reads the whole text
 	- OCRTopic
 	- OCRTopic>>#reference <- OCRChange>>#reference
 
-- Text before the first topic is the pull request description (OCRPullRequest): an optional first line 'Title: ...', then the body.
+- The text before a line 'Topics:' is the pull request description (OCRPullRequest), as it is: an optional first line 'Title: ...', then the body, whose headings and lists are not topics nor changes. Without a 'Topics:' line, the text before the first topic is the pull request.
 - A line starting with '# ' starts a topic; the rest of the line is its title.
 - A line starting with '- ' lists a change of the current topic: 'Foo>>#bar', 'Foo class>>#bar', 'Foo' or 'Foo class' for a definition, or a file path. Write a path with spaces between backquotes. 'Foo>>bar' is read as 'Foo>>#bar'.
 - After the reference, '<- Other>>#ref' says the code was moved or extracted from that change; the rest of the line is why this change was made.
@@ -39,11 +44,15 @@ OCRGuideParser >> normalized: aReference [
 
 { #category : 'parsing' }
 OCRGuideParser >> parse: aString [
+	"Lines before a 'Topics:' line are the pull request as they are, its headings and lists included."
 
-	| topics introLines |
+	| topics introLines lines end |
 	topics := OrderedCollection new.
 	introLines := OrderedCollection new.
-	aString lines do: [ :each | self readLine: each trimBoth into: topics after: introLines ].
+	lines := aString lines collect: [ :each | each trimBoth ].
+	end := lines indexOf: 'Topics:'.
+	introLines addAll: (lines first: (end - 1 max: 0)).
+	(lines allButFirst: end) do: [ :each | self readLine: each into: topics after: introLines ].
 	^ OCRReviewGuide text: aString topics: topics pullRequest: (self pullRequestFrom: introLines)
 ]
 

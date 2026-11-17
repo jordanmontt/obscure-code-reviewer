@@ -53,6 +53,11 @@ The agent groups changes by what they do (e.g. "Optimize parsing"), across packa
 Title: Parse tokens lazily
 The parser re-scanned the stream for every token; it now reads one token at a time.
 
+# Goal
+`OCRParser>>#nextToken` reads one token at a time.
+
+Topics:
+
 # Optimize parsing
 Why: avoid re-scanning the stream for every token.
 - OCRParser>>#nextToken reads one token, not the whole stream
@@ -63,7 +68,7 @@ Why: avoid re-scanning the stream for every token.
 - README.md
 ```
 
-- Text before the first topic is the **pull request description**: an optional first line `Title: …`, then the body (see "Pull request tab").
+- Text before the line `Topics:` is the **pull request description**, as written: an optional first line `Title: …`, then the body (see "Pull request tab"). Its `#` headings and `- ` lines are part of the description, not topics or changes, so it can follow a pull request style with `# Goal` and `# Main changes`. Without a `Topics:` line, the text before the first topic is the description.
 - `# ` headings are topics; the other lines below are the explanation; `- ` lines are changes.
 - A change is written as in the copied review: `Foo>>#bar`, `Foo class>>#bar`, `Foo` for a class definition, `Foo class` for a class-side definition, and a path for a file. Backquotes are ignored (put a path with spaces between them) and `Foo>>bar` is read as `Foo>>#bar`.
 - After the reference, the rest of the line is **why that change** was made; it is shown above its diff.
@@ -72,10 +77,10 @@ Why: avoid re-scanning the stream for every token.
 - Changes not mentioned go to **"Not covered by any topic"**.
 - Problems (a change in two topics, a change not in the diff, code moved from a change not in the diff) appear as warnings in the Guide tab and never block the review.
 - Selecting a topic shows its explanation in the diff area; a topic can be commented like a change.
-- The guide gets into the image either:
-  - stored by the agent through the MCP: `OCRReviewGuide forRepositoryNamed: 'x' put: '…'` (kept in memory while the image runs, one guide per repository; storing again replaces it), or
-  - pasted or edited by the user in the **Guide** tab, then **Apply** (which stores it the same way and refreshes).
-- Refresh re-reads the stored guide.
+- The guide is not stored anywhere: it belongs to the review window.
+  - The agent gives it when it opens the window: `(OCRReviewPresenter onRepositoryNamed: 'x' guide: (OCRReviewGuide fromText: '…')) open`.
+  - The user can paste or edit it in the **Guide** tab, then **Apply**, which refreshes with the new guide.
+- Refresh keeps the window's guide; closing the window forgets it.
 - The tool works fully without a guide: the Topics tab then has only "Not covered by any topic".
 
 ### Pull request tab
@@ -191,7 +196,7 @@ Order: the progress line and the "Not reviewed yet" list only when at least one 
 4. Edit added and modified methods by hand in the review window.
 5. Branch split-point base, with the `main` / `origin/main` default.
 6. Picker and world menu entry.
-7. Topics: guide parser, guide store, paste box, warnings.
+7. Topics: guide parser, paste box, warnings.
 8. Files and pull request: non-code files and packages not loaded, the Pull request tab, why on a single change (ideas from the CodeReview tool, `github://guillep/pharo-review`).
 9. Reviewed marks, moved-code links, line counts, "Not reviewed yet" in Copy review (also from CodeReview).
 10. README for Pharo developers: clear and straight to the point, including the branch caveat.

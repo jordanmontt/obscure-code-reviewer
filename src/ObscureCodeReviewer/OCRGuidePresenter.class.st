@@ -1,7 +1,7 @@
 "
 I am the Guide tab of the review window: the review guide's Markdown (see OCRGuideParser), an Apply button, and the warnings about the guide.
 
-The agent usually stores the guide through the MCP (OCRReviewGuide class>>#forRepositoryNamed:put:), and it shows up here. The user can also paste or edit it and click Apply.
+The agent gives the guide to the window when it opens it (OCRReviewPresenter class>>#onRepositoryNamed:guide:), and it shows up here. The user can also paste or edit it and click Apply: the window then shows the new guide, until it is closed. Guides are not stored anywhere.
 "
 Class {
 	#name : 'OCRGuidePresenter',

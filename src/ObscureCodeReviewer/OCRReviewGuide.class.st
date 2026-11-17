@@ -1,19 +1,23 @@
 "
-I am a review guide: the topics an agent wrote to explain its changes, parsed from Markdown by OCRGuideParser.
+I am a review guide: the pull request draft and the topics an agent wrote to explain its changes, parsed from Markdown by OCRGuideParser.
+
+	Title: Parse tokens lazily
+	The parser now reads one token at a time.
+
+	Topics:
 
 	# Optimize parsing
 	Why: avoid re-scanning the stream for every token.
 	- OCRParser>>#nextToken
 	- OCRToken
 
-The class side keeps the guide text of each repository while the image runs, so the agent can store it through the MCP and the review window finds it:
+I am not stored anywhere: the agent gives me to the review window when it opens it, and the window keeps me as long as it is open:
 
-	OCRReviewGuide forRepositoryNamed: 'my-project' put: '# Optimize parsing
-Why: avoid re-scanning the stream for every token.
-- OCRParser>>#nextToken
-- OCRToken'
+	(OCRReviewPresenter
+		onRepositoryNamed: 'my-project'
+		guide: (OCRReviewGuide fromText: '...')) open
 
-A repository without a stored guide has an empty guide: no topics, and the review works the same.
+A review opened without a guide has an empty guide: no topics, and the review works the same.
 "
 Class {
 	#name : 'OCRReviewGuide',
@@ -22,9 +26,6 @@ Class {
 		'text',
 		'topics',
 		'pullRequest'
-	],
-	#classInstVars : [
-		'storedTexts'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -37,36 +38,10 @@ OCRReviewGuide class >> empty [
 	^ self fromText: ''
 ]
 
-{ #category : 'store' }
-OCRReviewGuide class >> forRepositoryNamed: aRepositoryName [
-	"The stored guide of the repository, or an empty guide."
-
-	^ self fromText: (storedTexts at: aRepositoryName ifAbsent: [ '' ])
-]
-
-{ #category : 'store' }
-OCRReviewGuide class >> forRepositoryNamed: aRepositoryName put: aString [
-	"Keep aString as the guide of the repository, replacing the previous one."
-
-	storedTexts at: aRepositoryName put: aString
-]
-
 { #category : 'instance creation' }
 OCRReviewGuide class >> fromText: aString [
 
 	^ OCRGuideParser new parse: aString
-]
-
-{ #category : 'class initialization' }
-OCRReviewGuide class >> initialize [
-
-	storedTexts := Dictionary new
-]
-
-{ #category : 'store' }
-OCRReviewGuide class >> removeForRepositoryNamed: aRepositoryName [
-
-	storedTexts removeKey: aRepositoryName ifAbsent: [ ^ self ]
 ]
 
 { #category : 'instance creation' }
@@ -100,7 +75,7 @@ OCRReviewGuide >> originOf: aReference ifNone: aBlock [
 
 { #category : 'accessing' }
 OCRReviewGuide >> pullRequest [
-	"The agent's draft of the pull request description: the text before the first topic."
+	"The agent's draft of the pull request description: the text before the 'Topics:' line, or before the first topic."
 
 	^ pullRequest
 ]

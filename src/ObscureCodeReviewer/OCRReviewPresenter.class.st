@@ -32,12 +32,20 @@ OCRReviewPresenter class >> onRepositoryNamed: aString [
 	^ self on: (OCRIcebergReader reviewOfRepositoryNamed: aString)
 ]
 
+{ #category : 'instance creation' }
+OCRReviewPresenter class >> onRepositoryNamed: aString guide: aGuide [
+	"Review the repository against its default base, with aGuide (an OCRReviewGuide)."
+
+	^ self on: ((OCRIcebergReader reviewOfRepositoryNamed: aString)
+		   guide: aGuide;
+		   yourself)
+]
+
 { #category : 'actions' }
 OCRReviewPresenter >> applyGuide: aString [
-	"Keep the guide for this repository, so a refresh or a new review finds it, then show it."
+	"Show the review with this guide. Refresh keeps it; nothing else does: it lives as long as the window."
 
-	OCRReviewGuide forRepositoryNamed: review repositoryName put: aString.
-	self refresh
+	self refreshWithGuide: (OCRReviewGuide fromText: aString)
 ]
 
 { #category : 'actions' }
@@ -210,30 +218,45 @@ OCRReviewPresenter >> openChangeInWindow: aChange [
 ]
 
 { #category : 'actions' }
-OCRReviewPresenter >> refresh [
-	"Recompute the changes from the image and re-read the guide. The comments are kept (see OCRReview>>#takeCommentsFrom:),
-	and so is the selected change or topic when it is still there."
+OCRReviewPresenter >> recomputedReview [
+	"The review recomputed from the image against the same base, without the reviewer's work yet."
 
-	self hasSelectedCommentable ifFalse: [ ^ self reloadReview ].
-	self reloadReviewSelecting: self selectedCommentable reference
+	^ OCRIcebergReader reviewOfRepositoryNamed: review repositoryName against: review base
 ]
 
 { #category : 'actions' }
-OCRReviewPresenter >> reloadReview [
-	"Recompute the review against the same base, with the stored guide, keeping what the reviewer did."
+OCRReviewPresenter >> refresh [
+	"Recompute the changes from the image, with the same guide. The comments are kept (see OCRReview>>#takeCommentsFrom:),
+	and so is the selected change or topic when it is still there."
+
+	self refreshWithGuide: review guide
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> refreshWithGuide: aGuide [
+	"Recompute the changes from the image and show them with aGuide. The comments are kept (see OCRReview>>#takeCommentsFrom:),
+	and so is the selected change or topic when it is still there."
+
+	self hasSelectedCommentable ifFalse: [ ^ self reloadReviewWithGuide: aGuide ].
+	self reloadReviewWithGuide: aGuide selecting: self selectedCommentable reference
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> reloadReviewWithGuide: aGuide [
+	"Recompute the review against the same base, with aGuide, keeping what the reviewer did."
 
 	| newReview |
-	newReview := OCRIcebergReader reviewOfRepositoryNamed: review repositoryName against: review base.
-	newReview guide: (OCRReviewGuide forRepositoryNamed: review repositoryName).
+	newReview := self recomputedReview.
+	newReview guide: aGuide.
 	newReview continueFrom: review.
 	review := newReview.
 	self showReview
 ]
 
 { #category : 'actions' }
-OCRReviewPresenter >> reloadReviewSelecting: aReference [
+OCRReviewPresenter >> reloadReviewWithGuide: aGuide selecting: aReference [
 
-	self reloadReview.
+	self reloadReviewWithGuide: aGuide.
 	tabs selectItemReferenced: aReference
 ]
 
@@ -263,8 +286,7 @@ OCRReviewPresenter >> selectedCommentable [
 { #category : 'accessing - model' }
 OCRReviewPresenter >> setModelBeforeInitialization: aReview [
 
-	review := aReview.
-	review guide: (OCRReviewGuide forRepositoryNamed: review repositoryName)
+	review := aReview
 ]
 
 { #category : 'showing' }

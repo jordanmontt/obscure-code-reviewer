@@ -83,6 +83,24 @@ OCRTopicTreeTest >> testChangesGoUnderTheirTopicInTheGuideOrder [
 ]
 
 { #category : 'tests' }
+OCRTopicTreeTest >> testChangesInThePullRequestAreNotInATopic [
+
+	| review tree |
+	review := self reviewWith: { (self methodChange: #a class: 'A') } guide: 'Title: Add a
+# Goal
+- A>>#a answers a.
+Topics:
+# Answer a
+- A>>#a'.
+
+	tree := review topicTree.
+
+	self assert: (self labelsOf: tree) equals: #( 'Answer a' ).
+	self assert: (self labelsOf: tree first children) equals: #( '~ A>>#a' ).
+	self assert: review guideWarnings isEmpty
+]
+
+{ #category : 'tests' }
 OCRTopicTreeTest >> testUnlistedChangesAreNotCoveredByAnyTopic [
 
 	| review tree |
