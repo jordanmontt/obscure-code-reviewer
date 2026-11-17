@@ -9,19 +9,19 @@ Class {
 }
 
 { #category : 'helpers' }
-OCRClassDefinitionPrinterTest >> assertPrintsClassSideLikePharo: aClass [
+OCRClassDefinitionPrinterTest >> assertPrintsClassSideLikePharo: aClassOrTrait [
 
 	self
-		assert: (OCRClassDefinitionPrinter classSideSourceOf: aClass asClassDefinition)
-		equals: (ClassDefinitionPrinter fluid for: aClass class) metaclassDefinitionString
+		assert: (OCRClassDefinitionPrinter classSideSourceOf: aClassOrTrait asClassDefinition)
+		equals: (ClassDefinitionPrinter fluid for: aClassOrTrait class) definitionString
 ]
 
 { #category : 'helpers' }
-OCRClassDefinitionPrinterTest >> assertPrintsLikePharo: aClass [
+OCRClassDefinitionPrinterTest >> assertPrintsLikePharo: aClassOrTrait [
 
 	self
-		assert: (OCRClassDefinitionPrinter on: aClass asClassDefinition) classDefinitionString
-		equals: (ClassDefinitionPrinter fluid for: aClass) classDefinitionString
+		assert: (OCRClassDefinitionPrinter on: aClassOrTrait asClassDefinition) classDefinitionString
+		equals: (ClassDefinitionPrinter fluid for: aClassOrTrait) definitionString
 ]
 
 { #category : 'tests' }
@@ -77,6 +77,19 @@ OCRClassDefinitionPrinterTest >> testSharedVariablesAreSortedLikeMonticello [
 OCRClassDefinitionPrinterTest >> testSlotsAndTag [
 
 	self assertPrintsLikePharo: OCRBinaryFileChange
+]
+
+{ #category : 'tests' }
+OCRClassDefinitionPrinterTest >> testTrait [
+
+	self assertPrintsLikePharo: SpTContextMenu.
+	self assertPrintsLikePharo: SpTHaveWrappingScrollBars
+]
+
+{ #category : 'tests' }
+OCRClassDefinitionPrinterTest >> testTraitClassSide [
+
+	self assertPrintsClassSideLikePharo: SpTContextMenu
 ]
 
 { #category : 'tests' }

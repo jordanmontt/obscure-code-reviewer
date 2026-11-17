@@ -205,10 +205,10 @@ OCRIcebergReader >> fileChangesIn: aRepository since: aCommit [
 
 { #category : 'reading' }
 OCRIcebergReader >> isEmptyClassSideDefinition: aNode [
-	"Iceberg reports a class-side definition ('MyClass class') for every new class.
+	"Iceberg reports a class-side definition ('MyClass class', or 'MyTrait classTrait') for every new class or trait.
 	It is only worth reviewing when the class side declares variables."
 
-	aNode definition isClassDefinition ifFalse: [ ^ false ].
+	(aNode definition isClassDefinition or: [ aNode definition isTraitDefinition ]) ifFalse: [ ^ false ].
 	aNode definition isMeta ifFalse: [ ^ false ].
 	^ (self classSideVariablesOf: aNode value) isEmpty
 ]
@@ -306,11 +306,11 @@ OCRIcebergReader >> reviewOf: aRepository against: aBase [
 
 { #category : 'reading' }
 OCRIcebergReader >> sourceOf: aDefinition [
-	"Iceberg's contents (IceMethodContainerDefinition>>#contents), except that a class definition is printed in the fluid format the System Browser shows (see OCRClassDefinitionPrinter). Traits keep Iceberg's format."
+	"Iceberg's contents (IceMethodContainerDefinition>>#contents), except that class and trait definitions are printed in the fluid format the System Browser shows (see OCRClassDefinitionPrinter)."
 
 	| contents |
 	contents := aDefinition contents.
-	(aDefinition isClassDefinition and: [ contents isNotEmpty ]) ifFalse: [ ^ contents ].
+	((aDefinition isClassDefinition or: [ aDefinition isTraitDefinition ]) and: [ contents isNotEmpty ]) ifFalse: [ ^ contents ].
 	aDefinition isMeta ifTrue: [ ^ OCRClassDefinitionPrinter classSideSourceOf: aDefinition asMCDefinition ].
 	^ OCRClassDefinitionPrinter sourceOf: aDefinition asMCDefinition
 ]

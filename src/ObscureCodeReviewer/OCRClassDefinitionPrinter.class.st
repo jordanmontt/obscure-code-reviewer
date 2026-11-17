@@ -48,8 +48,9 @@ OCRClassDefinitionPrinter class >> sourceOf: anMCClassDefinition [
 
 { #category : 'printing' }
 OCRClassDefinitionPrinter >> classDefinitionString [
-	"FluidClassDefinitionPrinter>>#classDefinitionString"
+	"FluidClassDefinitionPrinter>>#classDefinitionString, or #traitDefinitionString for a trait."
 
+	definition isTraitDefinition ifTrue: [ ^ self traitDefinitionString ].
 	^ String streamContents: [ :aStream |
 		  stream := aStream.
 		  stream
@@ -68,17 +69,14 @@ OCRClassDefinitionPrinter >> classDefinitionString [
 			  stream nextPut: $; ].
 		  definition classVarNames ifNotEmpty: [ :names | self printSharedVariables: names ].
 		  definition poolDictionaries ifNotEmpty: [ :names | self printSharedPools: names ].
-		  self printTag.
-		  stream
-			  crtab;
-			  nextPutAll: 'package: ';
-			  print: definition packageName asString ]
+		  self printTagAndPackage ]
 ]
 
 { #category : 'printing' }
 OCRClassDefinitionPrinter >> classSideDefinitionString [
-	"FluidClassDefinitionPrinter>>#metaclassDefinitionString"
+	"FluidClassDefinitionPrinter>>#metaclassDefinitionString, or the class side of a trait."
 
+	definition isTraitDefinition ifTrue: [ ^ self traitClassSideDefinitionString ].
 	^ String streamContents: [ :aStream |
 		  | showsSlots |
 		  stream := aStream.
@@ -169,15 +167,19 @@ OCRClassDefinitionPrinter >> printSlots: someNames [
 ]
 
 { #category : 'printing' }
-OCRClassDefinitionPrinter >> printTag [
+OCRClassDefinitionPrinter >> printTagAndPackage [
 	"Monticello has no tag for a class in its package's root tag, which is not printed."
 
-	definition tagName isEmptyOrNil ifTrue: [ ^ self ].
+	definition tagName isEmptyOrNil ifFalse: [
+		stream
+			crtab;
+			nextPutAll: 'tag: ';
+			print: definition tagName asString;
+			nextPut: $; ].
 	stream
 		crtab;
-		nextPutAll: 'tag: ';
-		print: definition tagName asString;
-		nextPut: $;
+		nextPutAll: 'package: ';
+		print: definition packageName asString
 ]
 
 { #category : 'printing' }
@@ -228,6 +230,39 @@ OCRClassDefinitionPrinter >> superclassName [
 	"Monticello has no superclass name for a root class, such as a subclass of nil."
 
 	^ definition superclassName ifNil: [ 'nil' ]
+]
+
+{ #category : 'printing' }
+OCRClassDefinitionPrinter >> traitClassSideDefinitionString [
+	"Trait << TFoo classTrait, with its traits and slots only when it has some."
+
+	^ String streamContents: [ :aStream |
+		  | slots |
+		  stream := aStream.
+		  stream
+			  nextPutAll: 'Trait << ';
+			  nextPutAll: definition className;
+			  nextPutAll: ' classTrait'.
+		  slots := definition classInstVarNames.
+		  definition hasClassTraitComposition ifTrue: [
+			  self printTraits: definition classTraitCompositionString ending: (slots ifEmpty: [ '' ] ifNotEmpty: [ ';' ]) ].
+		  slots ifNotEmpty: [ self printSlots: slots ] ]
+]
+
+{ #category : 'printing' }
+OCRClassDefinitionPrinter >> traitDefinitionString [
+	"FluidClassDefinitionPrinter>>#traitDefinitionString: a trait has no layout or shared variables, and shows its slots only when it has some."
+
+	^ String streamContents: [ :aStream |
+		  stream := aStream.
+		  stream
+			  nextPutAll: 'Trait << #';
+			  nextPutAll: definition className.
+		  definition hasTraitComposition ifTrue: [ self printTraits: definition traitCompositionString ending: ';' ].
+		  definition instVarNames ifNotEmpty: [ :names |
+			  self printSlots: names.
+			  stream nextPut: $; ].
+		  self printTagAndPackage ]
 ]
 
 { #category : 'printing' }
