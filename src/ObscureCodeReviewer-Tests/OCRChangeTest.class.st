@@ -9,6 +9,23 @@ Class {
 }
 
 { #category : 'tests' }
+OCRChangeTest >> testAChangeKnowsWhetherItsClassIsInTheImage [
+
+	self assert: (OCRMethodChange modification
+		 className: 'OCRChangeTest';
+		 selector: #a;
+		 yourself) isClassInImage.
+	self assert: (OCRMethodChange modification
+		 className: 'OCRChangeTest class';
+		 selector: #a;
+		 yourself) isClassInImage.
+	self deny: (OCRMethodChange removal
+		 className: 'OCRNoSuchClass';
+		 selector: #a;
+		 yourself) isClassInImage
+]
+
+{ #category : 'tests' }
 OCRChangeTest >> testClassDefinitionReferenceIsClassName [
 
 	| change |

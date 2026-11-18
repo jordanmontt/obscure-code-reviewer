@@ -40,7 +40,7 @@ OCRReviewToolbar >> initializeEditingButtons [
 	editButton := self newToolbarButton
 		              label: 'Edit';
 		              icon: (self iconNamed: #edit);
-		              help: 'Edit the selected method by hand';
+		              help: 'Edit the selected method by hand (Cmd+E)';
 		              action: [ reviewPresenter startEditing ];
 		              yourself.
 	saveButton := self newToolbarButton
@@ -52,7 +52,7 @@ OCRReviewToolbar >> initializeEditingButtons [
 	cancelButton := self newToolbarButton
 		                label: 'Cancel';
 		                icon: (self iconNamed: #smallCancel);
-		                help: 'Stop editing without saving';
+		                help: 'Stop editing without saving (Esc)';
 		                action: [ reviewPresenter stopEditing ];
 		                yourself
 ]
@@ -93,13 +93,13 @@ OCRReviewToolbar >> initializeReviewingButtons [
 		                  label: 'Reviewed';
 		                  icon: (self iconNamed: #smallOk);
 		                  help:
-			                  'Mark the selected change, or everything under the selected node, as reviewed. When it already is, unmark it.';
+			                  'Mark the selected change, or everything under the selected node, as reviewed. When it already is, unmark it (Cmd+R)';
 		                  action: [ reviewPresenter toggleReviewed ];
 		                  yourself.
 	browseButton := self newToolbarButton
 		                label: 'Browse';
 		                icon: (self iconNamed: #glamorousBrowse);
-		                help: 'Open the System Browser on the selected method or class';
+		                help: 'Open the System Browser on the selected method or class (Cmd+B)';
 		                action: [ reviewPresenter browseSelection ];
 		                yourself
 ]

@@ -55,15 +55,41 @@ OCRReviewPresenter >> applyGuide: aString [
 ]
 
 { #category : 'actions' }
+OCRReviewPresenter >> browseImplementorsOfSelection [
+	"In my application, as Code search does (see SpToolCurrentApplicationCommand>>#execute)."
+
+	SpToolCurrentApplication
+		value: self application
+		during: [ self systemNavigation browseAllImplementorsOf: self selectedChange selector ]
+]
+
+{ #category : 'actions' }
 OCRReviewPresenter >> browseSelection [
 
-	self selectedChange browse
+	tabs selectedNode browse
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> browseSendersOfSelection [
+	"In my application, as Code search does (see SpToolCurrentApplicationCommand>>#execute)."
+
+	SpToolCurrentApplication
+		value: self application
+		during: [ self systemNavigation browseAllSendersOf: self selectedChange selector ]
+]
+
+{ #category : 'testing' }
+OCRReviewPresenter >> canBrowseMessagesOfSelection [
+	"Implementors and senders need a selector: a method, even a removed one."
+
+	^ self hasSelectedChange and: [ self selectedChange isMethodChange ]
 ]
 
 { #category : 'testing' }
 OCRReviewPresenter >> canBrowseSelection [
 
-	^ self hasSelectedChange and: [ self selectedChange isInImage ]
+	tabs isSelectionEmpty ifTrue: [ ^ false ].
+	^ tabs selectedNode canBrowse
 ]
 
 { #category : 'testing' }
@@ -175,6 +201,62 @@ OCRReviewPresenter >> hasSelectedCommentable [
 ]
 
 { #category : 'initialization' }
+OCRReviewPresenter >> initializeActions [
+	"The actions of the review: shortcuts of the whole window, and the right-click menu of the trees, where each shows its key and its button's icon.
+	Each does what its toolbar button does, when the button is enabled (see OCRReviewToolbar>>#updateButtons).
+	A text pane answers its own keys first: there Cmd+B, Cmd+M and Cmd+N are Code search on the selected word."
+
+	| actions |
+	actions := SpActionGroup new.
+	actions addActionWith: [ :action |
+		action
+			dynamicName: [
+				self isSelectionReviewed
+					ifTrue: [ 'Unmark' ]
+					ifFalse: [ 'Reviewed' ] ];
+			iconName: #smallOk;
+			shortcutKey: $r actionModifier;
+			actionEnabled: [ self isEditing not and: [ self canMarkSelection ] ];
+			action: [ self toggleReviewed ] ].
+	actions addActionWith: [ :action |
+		action
+			name: 'Browse';
+			iconName: #glamorousBrowse;
+			shortcutKey: $b actionModifier;
+			actionEnabled: [ self isEditing not and: [ self canBrowseSelection ] ];
+			action: [ self browseSelection ] ].
+	actions addActionWith: [ :action |
+		action
+			name: 'Edit';
+			iconName: #edit;
+			shortcutKey: $e actionModifier;
+			actionEnabled: [ self isEditing not and: [ self canEditSelection ] ];
+			action: [ self startEditing ] ].
+	actions addActionWith: [ :action |
+		action
+			name: 'Implementors';
+			iconName: #smallFind;
+			shortcutKey: $m actionModifier;
+			actionEnabled: [ self isEditing not and: [ self canBrowseMessagesOfSelection ] ];
+			action: [ self browseImplementorsOfSelection ] ].
+	actions addActionWith: [ :action |
+		action
+			name: 'Senders';
+			iconName: #smallFind;
+			shortcutKey: $n actionModifier;
+			actionEnabled: [ self isEditing not and: [ self canBrowseMessagesOfSelection ] ];
+			action: [ self browseSendersOfSelection ] ].
+	actions addShortcutWith: [ :action |
+		action
+			name: 'Cancel';
+			shortcutKey: Character escape asKeyCombination;
+			actionEnabled: [ self isEditing ];
+			action: [ self stopEditing ] ].
+	self actions: actions.
+	tabs treeActions: actions
+]
+
+{ #category : 'initialization' }
 OCRReviewPresenter >> initializePresenters [
 
 	toolbar := self instantiate: OCRReviewToolbar on: self.
@@ -186,7 +268,8 @@ OCRReviewPresenter >> initializePresenters [
 		               yourself.
 	generalCommentText := self newCommentPane
 		                      placeholder: 'General comment on the whole review';
-		                      yourself
+		                      yourself.
+	self initializeActions
 ]
 
 { #category : 'initialization' }

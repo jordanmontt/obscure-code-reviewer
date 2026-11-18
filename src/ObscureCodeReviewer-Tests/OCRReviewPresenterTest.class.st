@@ -18,6 +18,26 @@ OCRReviewPresenterTest >> emptyReview [
 		  changes: #(  )
 ]
 
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> reviewWithMethod: aSelector [
+
+	^ OCRReview
+		  repositoryName: 'my-project'
+		  base: OCRLastCommitBase new
+		  baseLabel: 'abc1234 (last commit)'
+		  changes: { (OCRMethodChange modification
+			   packageName: 'MyPackage';
+			   className: 'OCRReviewPresenterTest';
+			   selector: aSelector;
+			   yourself) }
+]
+
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> shortcutOf: aPresenter keyed: aKeyCombination [
+
+	^ aPresenter actions allCommands detect: [ :each | each shortcutKey = aKeyCombination ]
+]
+
 { #category : 'tests' }
 OCRReviewPresenterTest >> testApplyKeepsTheReviewerEditsOfThePullRequest [
 
@@ -72,6 +92,28 @@ OCRReviewPresenterTest >> testEachReviewHasItsOwnApplication [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testEscapeCancelsOnlyWhileEditing [
+
+	| presenter |
+	presenter := OCRReviewPresenter on: self emptyReview.
+
+	self deny: (self shortcutOf: presenter keyed: Character escape asKeyCombination) canBeExecuted
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testImplementorsAndSendersOfASelectedMethod [
+
+	| presenter |
+	presenter := OCRReviewPresenterStub on: (self reviewWithMethod: #a).
+	presenter nextReview: (self reviewWithMethod: #a).
+
+	presenter reloadReviewWithGuide: OCRReviewGuide empty selecting: 'OCRReviewPresenterTest>>#a'.
+
+	self assert: (self shortcutOf: presenter keyed: $m actionModifier) canBeExecuted.
+	self assert: (self shortcutOf: presenter keyed: $n actionModifier) canBeExecuted
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 
 	| guide presenter next |
@@ -88,6 +130,38 @@ OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testShortcutsAreDisabledLikeTheirButtonsWhenNothingIsSelected [
+	"Cmd+R marks as reviewed, Cmd+B browses, Cmd+E edits, Cmd+M and Cmd+N browse implementors and senders: they need a selection."
+
+	| presenter |
+	presenter := OCRReviewPresenter on: self emptyReview.
+
+	{
+		$r actionModifier.
+		$b actionModifier.
+		$e actionModifier.
+		$m actionModifier.
+		$n actionModifier } do: [ :each | self deny: (self shortcutOf: presenter keyed: each) canBeExecuted ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheActionsAreInTheMenuExceptEscape [
+	"The trees show the window's actions in their right-click menu, each with its key."
+
+	| presenter visible |
+	presenter := OCRReviewPresenter on: self emptyReview.
+
+	visible := presenter actions allCommands select: [ :each | each isVisible ] thenCollect: [ :each | each shortcutKey ].
+
+	self assert: visible asSet equals: {
+		$r actionModifier.
+		$b actionModifier.
+		$e actionModifier.
+		$m actionModifier.
+		$n actionModifier } asSet
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testTheGuideIsTheOneOfTheReview [
 
 	| review guide |
@@ -99,6 +173,22 @@ OCRReviewPresenterTest >> testTheGuideIsTheOneOfTheReview [
 	OCRReviewPresenter on: review.
 
 	self assert: review guide identicalTo: guide
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheMenuItemsHaveTheIconsOfTheirButtons [
+	"Implementors and senders have the magnifier of the System Browser's code menu."
+
+	| presenter |
+	presenter := OCRReviewPresenter on: self emptyReview.
+
+	{
+		($r actionModifier -> #smallOk).
+		($b actionModifier -> #glamorousBrowse).
+		($e actionModifier -> #edit).
+		($m actionModifier -> #smallFind).
+		($n actionModifier -> #smallFind) } do: [ :each |
+		self assert: (self shortcutOf: presenter keyed: each key) iconName equals: each value ]
 ]
 
 { #category : 'tests' }

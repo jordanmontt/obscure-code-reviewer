@@ -183,6 +183,14 @@ OCRReviewTabsPresenter >> showReview: aReview [
 	pullRequestPresenter showPullRequest: review pullRequest
 ]
 
+{ #category : 'api' }
+OCRReviewTabsPresenter >> treeActions: anActionGroup [
+	"Both trees offer anActionGroup in their right-click menu, and answer its shortcuts when focused."
+
+	changesTree actions: anActionGroup.
+	topicsTree actions: anActionGroup
+]
+
 { #category : 'events' }
 OCRReviewTabsPresenter >> whenChangeActivatedDo: aBlock [
 	"aBlock receives the change of a node double-clicked in either tree. Sections, packages, topics and unchanged classes have no change and are ignored."

@@ -61,7 +61,7 @@ OCRStructuralTreeBuilder >> newGroupNodeNamed: aGroupName for: groupChanges [
 	^ groupChanges
 		  detect: [ :each | each isClassChange ]
 		  ifFound: [ :classChange | OCRChangeNode named: aGroupName iconName: iconName change: classChange ]
-		  ifNone: [ OCRContainerNode named: aGroupName iconName: iconName ]
+		  ifNone: [ OCRClassNode named: aGroupName iconName: iconName change: groupChanges first ]
 ]
 
 { #category : 'building' }

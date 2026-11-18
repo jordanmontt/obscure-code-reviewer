@@ -69,6 +69,13 @@ OCRChange >> browse [
 	^ self subclassResponsibility
 ]
 
+{ #category : 'image' }
+OCRChange >> browseClass [
+	"Open the System Browser on my class. Only valid when #isClassInImage is true. Not tested: it opens a window."
+
+	^ (self class environment classNamed: className) browse
+]
+
 { #category : 'accessing' }
 OCRChange >> className: aString [
 
@@ -116,6 +123,13 @@ OCRChange >> isBinary [
 OCRChange >> isClassChange [
 
 	^ false
+]
+
+{ #category : 'testing' }
+OCRChange >> isClassInImage [
+	"Whether my class is in the image, so it can be browsed: a removed method can still have its class. It reads the live system."
+
+	^ (self class environment classNamed: className) isNotNil
 ]
 
 { #category : 'testing' }

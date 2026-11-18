@@ -40,6 +40,20 @@ OCRTreeNode >> addChild: aNode [
 	children add: aNode
 ]
 
+{ #category : 'browsing' }
+OCRTreeNode >> browse [
+	"Open the System Browser on me. Only valid when #canBrowse is true."
+
+	^ self subclassResponsibility
+]
+
+{ #category : 'testing' }
+OCRTreeNode >> canBrowse [
+	"Whether Browse can open the System Browser on me. Sections, packages and topics cannot."
+
+	^ false
+]
+
 { #category : 'accessing' }
 OCRTreeNode >> changesBelow [
 	"The changes of me and of all my children."

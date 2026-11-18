@@ -20,6 +20,19 @@ OCRChangeNode class >> named: aString iconName: aSymbol change: aChange [
 		  yourself
 ]
 
+{ #category : 'browsing' }
+OCRChangeNode >> browse [
+	"Only valid when #canBrowse is true."
+
+	^ change browse
+]
+
+{ #category : 'testing' }
+OCRChangeNode >> canBrowse [
+
+	^ change isInImage
+]
+
 { #category : 'accessing' }
 OCRChangeNode >> change [
 

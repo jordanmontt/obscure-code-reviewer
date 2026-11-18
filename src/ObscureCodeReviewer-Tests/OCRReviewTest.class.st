@@ -51,6 +51,28 @@ OCRReviewTest >> reviewWith: someChanges [
 ]
 
 { #category : 'tests' }
+OCRReviewTest >> testAClassNotInTheImageCannotBeBrowsed [
+
+	| classNode |
+	classNode := (self reviewWith: { (self methodChange: #a class: 'OCRNoSuchClass' package: 'MyPackage') }) structuralTree first
+		             children first children first.
+
+	self deny: classNode canBrowse
+]
+
+{ #category : 'tests' }
+OCRReviewTest >> testAnUnchangedClassCanBeBrowsed [
+
+	| package |
+	package := (self reviewWith: {
+		            (self methodChange: #a class: 'OCRReviewTest' package: 'MyPackage').
+		            (self methodChange: #b class: 'OCRReviewTest class' package: 'MyPackage') }) structuralTree first children first.
+
+	self assert: package children first canBrowse.
+	self assert: package children second canBrowse
+]
+
+{ #category : 'tests' }
 OCRReviewTest >> testChangedClassDefinitionIsTheClassNode [
 
 	| classChange classNode |
@@ -171,6 +193,16 @@ OCRReviewTest >> testPackagesAndClassesAreSortedByName [
 
 	self assert: (self namesOf: packages) equals: #( 'PackageA' 'PackageB' ).
 	self assert: (self namesOf: packages second children) equals: #( 'Alpha' 'Zeta' )
+]
+
+{ #category : 'tests' }
+OCRReviewTest >> testSectionsAndPackagesCannotBeBrowsed [
+
+	| section |
+	section := (self reviewWith: { (self methodChange: #a class: 'OCRReviewTest' package: 'MyPackage') }) structuralTree first.
+
+	self deny: section canBrowse.
+	self deny: section children first canBrowse
 ]
 
 { #category : 'tests' }
