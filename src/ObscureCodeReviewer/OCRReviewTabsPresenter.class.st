@@ -133,7 +133,7 @@ OCRReviewTabsPresenter >> newChangesTree [
 { #category : 'initialization' }
 OCRReviewTabsPresenter >> pageTitled: aTitle help: aString presenter: aPresenter [
 
-	^ (OCRNotebookPage title: aTitle provider: [ aPresenter ])
+	^ (SpNotebookPage title: aTitle provider: [ aPresenter ])
 		  help: aString;
 		  yourself
 ]

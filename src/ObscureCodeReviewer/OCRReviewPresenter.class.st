@@ -322,7 +322,6 @@ OCRReviewPresenter >> showNothing [
 
 { #category : 'showing' }
 OCRReviewPresenter >> showReview [
-	"Show the current review, after a refresh."
 
 	tabs showReview: review.
 	generalCommentText text: review generalComment.
