@@ -25,6 +25,12 @@ Class {
 	#tag : 'UI'
 }
 
+{ #category : 'accessing' }
+OCRReviewPresenter class >> currentApplication [
+
+	^ OCRApplication new
+]
+
 { #category : 'instance creation' }
 OCRReviewPresenter class >> onRepositoryNamed: aString [
 	"Review the repository against its default base (see OCRIcebergReader>>#defaultBaseOf:)."
@@ -174,11 +180,11 @@ OCRReviewPresenter >> initializePresenters [
 	toolbar := self instantiate: OCRReviewToolbar on: self.
 	tabs := self instantiate: OCRReviewTabsPresenter on: review.
 	changeArea := self instantiate: OCRChangeAreaPresenter.
-	commentText := self newText
+	commentText := self newCommentPane
 		               placeholder: 'Comment on the selected change or topic';
 		               enabled: false;
 		               yourself.
-	generalCommentText := self newText
+	generalCommentText := self newCommentPane
 		                      placeholder: 'General comment on the whole review';
 		                      yourself
 ]
@@ -202,6 +208,17 @@ OCRReviewPresenter >> isEditing [
 OCRReviewPresenter >> isSelectionReviewed [
 
 	^ self canMarkSelection and: [ review areAllReviewed: tabs selectedNode changesBelow ]
+]
+
+{ #category : 'initialization' }
+OCRReviewPresenter >> newCommentPane [
+	"A comment is text, but a code pane gives it Code search (implementors, senders) on what the reviewer selects. Without highlighting, line numbers or smart characters, it reads and types as plain text."
+
+	^ self newCode
+		  withoutSyntaxHighlight;
+		  withoutLineNumbers;
+		  withoutSmartCharacters;
+		  yourself
 ]
 
 { #category : 'showing' }

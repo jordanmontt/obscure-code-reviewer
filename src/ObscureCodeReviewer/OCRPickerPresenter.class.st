@@ -33,6 +33,12 @@ OCRPickerPresenter class >> menuCommandOn: aBuilder [
 		iconName: #diff
 ]
 
+{ #category : 'instance creation' }
+OCRPickerPresenter class >> new [
+
+	^ self newApplication: OCRApplication new
+]
+
 { #category : 'initialization' }
 OCRPickerPresenter >> connectPresenters [
 
@@ -83,9 +89,15 @@ OCRPickerPresenter >> initializeWindow: aWindowPresenter [
 OCRPickerPresenter >> openReviewFrom: aDialog [
 
 	repositoryList selection isEmpty ifTrue: [ ^ self ].
-	(OCRReviewPresenter on: (OCRIcebergReader reviewOfRepositoryNamed: repositoryList selectedItem against: baseList selectedItem))
+	(self presenterOnReview: (OCRIcebergReader reviewOfRepositoryNamed: repositoryList selectedItem against: baseList selectedItem))
 		open.
 	aDialog close
+]
+
+{ #category : 'actions' }
+OCRPickerPresenter >> presenterOnReview: aReview [
+
+	^ OCRReviewPresenter newApplication: self application model: aReview
 ]
 
 { #category : 'actions' }

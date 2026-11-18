@@ -51,6 +51,27 @@ OCRReviewPresenterTest >> testApplyShowsTheNewGuide [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testCommentPanesOfferImplementorsAndSenders [
+	"A reviewer selects a selector in a comment and looks it up, as in a code pane."
+
+	| pane names |
+	pane := (OCRReviewPresenter on: self emptyReview) newCommentPane.
+
+	names := pane rootCommandsGroup allCommands collect: [ :each | each name ].
+
+	self assert: (names includes: 'Implementors of it').
+	self assert: (names includes: 'Senders of it')
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testEachReviewHasItsOwnApplication [
+
+	self
+		deny: (OCRReviewPresenter on: self emptyReview) application
+		identicalTo: (OCRReviewPresenter on: self emptyReview) application
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 
 	| guide presenter next |
@@ -78,4 +99,13 @@ OCRReviewPresenterTest >> testTheGuideIsTheOneOfTheReview [
 	OCRReviewPresenter on: review.
 
 	self assert: review guide identicalTo: guide
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheWindowRunsInTheReviewerApplication [
+
+	| presenter |
+	presenter := OCRReviewPresenter on: self emptyReview.
+
+	self assert: (presenter application isKindOf: OCRApplication)
 ]
