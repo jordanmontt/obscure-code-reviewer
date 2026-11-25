@@ -192,12 +192,12 @@ OCRIcebergReader >> fileChangeKindFrom: anOldFile to: aNewFile [
 { #category : 'files' }
 OCRIcebergReader >> fileChangesIn: aRepository since: aCommit [
 	"The files outside the loaded packages that differ between aCommit and the disk.
-	Only the files of aCommit or of the last commit are compared: a new file shows up once it is committed."
+	Only the files of aCommit or of git's HEAD are compared: a new file shows up once it is committed. HEAD, not Iceberg's reference commit, which lags behind it after a commit made outside Iceberg."
 
 	| paths |
 	paths := Set new.
 	self addFilePathsIn: aCommit fileSystem of: aRepository to: paths.
-	self addFilePathsIn: (self lastCommitOf: aRepository) fileSystem of: aRepository to: paths.
+	self addFilePathsIn: aRepository headCommit fileSystem of: aRepository to: paths.
 	^ paths sorted
 		  select: [ :each | self isFileAt: each changedIn: aRepository since: aCommit ]
 		  thenCollect: [ :each | self fileChangeAt: each in: aRepository since: aCommit ]
