@@ -19,7 +19,8 @@ Class {
 		'markdownPresenter',
 		'sourceText',
 		'sourceTitle',
-		'notesLabel'
+		'notesLabel',
+		'sourceTitleStrip'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -140,18 +141,25 @@ OCRChangeAreaPresenter >> showNothing [
 { #category : 'showing' }
 OCRChangeAreaPresenter >> showSource: aString titled: aTitle of: aChange [
 	"A new code presenter each time: aChange sets how it highlights (see OCRChange>>#styleSource:), and that setting would stay for the next change.
-	The title and the code are added one by one: Spec cannot add a layout to the layout of an open window, only presenters."
+	The title and the code are added one by one: Spec cannot add a layout to the layout of an open window, only presenters.
+	The title sits in a strip styled like the header of a diff (see OCRStyleContributor), so both views look the same. Its margin is a padding: the style's border replaces the layout's borderWidth."
 
 	sourceTitle := self newLabel
 		               label: aTitle;
 		               yourself.
+	sourceTitleStrip := self newPresenter
+		                    addStyle: 'ocrSourceTitle';
+		                    layout: (SpBoxLayout newLeftToRight
+				                     add: sourceTitle expand: true fill: true padding: 5;
+				                     yourself);
+		                    yourself.
 	sourceText := self newCode
 		              beNotEditable;
 		              yourself.
 	aChange styleSource: sourceText.
 	sourceText text: aString.
 	self layout
-		add: sourceTitle expand: false;
+		add: sourceTitleStrip expand: false;
 		add: sourceText
 ]
 
@@ -181,6 +189,13 @@ OCRChangeAreaPresenter >> shownSourceTitle [
 	"The title of the source shown alone, for an added or removed change."
 
 	^ sourceTitle label
+]
+
+{ #category : 'testing' }
+OCRChangeAreaPresenter >> shownSourceTitleStyles [
+	"The styles of the strip around the title of the source shown alone."
+
+	^ sourceTitleStrip styles
 ]
 
 { #category : 'editing' }

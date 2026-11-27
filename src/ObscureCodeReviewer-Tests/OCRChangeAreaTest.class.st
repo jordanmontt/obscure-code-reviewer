@@ -274,6 +274,19 @@ OCRChangeAreaTest >> testTheProtocolOfAnAddedMethodIsInTheTitle [
 ]
 
 { #category : 'tests' }
+OCRChangeAreaTest >> testTheTitleOfASourceShownAloneIsInAHeaderStrip [
+
+	area
+		showChange: ((self method: OCRMethodChange addition)
+			 newSource: 'foo ^ 2';
+			 yourself)
+		comparedWith: ''
+		notes: ''.
+
+	self assert: (area shownSourceTitleStyles includes: 'ocrSourceTitle')
+]
+
+{ #category : 'tests' }
 OCRChangeAreaTest >> testWhyMicrodownCannotRenderWraps [
 	"The error can be long: the line saying why the source is shown wraps."
 
