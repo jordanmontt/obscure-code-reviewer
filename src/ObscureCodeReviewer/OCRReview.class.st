@@ -20,7 +20,6 @@ Class {
 		'guide',
 		'pullRequest',
 		'reviewedChanges',
-		'lineCounts',
 		'reviewBase'
 	],
 	#category : 'ObscureCodeReviewer-Model',
@@ -186,7 +185,6 @@ OCRReview >> initialize [
 	super initialize.
 	comments := OCRReviewComments new.
 	reviewedChanges := Dictionary new.
-	lineCounts := Dictionary new.
 	self guide: OCRReviewGuide empty
 ]
 
@@ -207,19 +205,6 @@ OCRReview >> isPullRequestEdited [
 OCRReview >> isReviewed: aChange [
 
 	^ reviewedChanges includesKey: aChange reference
-]
-
-{ #category : 'line counts' }
-OCRReview >> lineCountOf: aChange [
-
-	^ lineCounts at: aChange reference ifAbsentPut: [ aChange lineCount ]
-]
-
-{ #category : 'line counts' }
-OCRReview >> lineCountUnder: aNode [
-	"The lines added and removed under aNode. Each change is diffed once: the tree asks for this on every refresh."
-
-	^ aNode changesBelow inject: 0 into: [ :sum :each | sum + (self lineCountOf: each) ]
 ]
 
 { #category : 'marks' }

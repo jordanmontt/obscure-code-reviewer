@@ -3,7 +3,7 @@ I am the left side of the review window: the Structure, Topics, Guide and Pull r
 
 The selection is the one of the tree clicked last (Structure or Topics). In the trees:
 - the icon says what a node is, + / ~ / - and the color say whether it was added, modified or removed;
-- a node shows how many lines changed under it, and whether everything under it is reviewed;
+- a node shows whether everything under it is reviewed;
 - a commented node is bold, and marked [commented].
 "
 Class {
@@ -110,17 +110,10 @@ OCRReviewTabsPresenter >> isSelectionEmpty [
 
 { #category : 'showing' }
 OCRReviewTabsPresenter >> labelFor: aNode [
-	"The node, the lines changed under it, and whether it is reviewed and commented."
+	"The node, and whether it is reviewed and commented."
 
-	| lineCount |
-	lineCount := review lineCountUnder: aNode.
 	^ String streamContents: [ :stream |
 		  stream nextPutAll: aNode label.
-		  lineCount > 0 ifTrue: [
-			  stream
-				  nextPutAll: '  (';
-				  print: lineCount;
-				  nextPutAll: ' lines)' ].
 		  (review areAllReviewed: aNode changesBelow) ifTrue: [ stream nextPutAll: '  [reviewed]' ].
 		  (self isCommented: aNode) ifTrue: [ stream nextPutAll: '  [commented]' ] ]
 ]

@@ -65,6 +65,25 @@ OCRReviewPresenterTest >> testANewReviewKeepsTheSelectionInTheStructureTab [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testATreeLabelIsTheNodeAndItsMarks [
+	"No line count: only what the node is, and whether it is reviewed or commented."
+
+	| review |
+	review := OCRReview
+		          repositoryName: 'my-project'
+		          reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
+		          changes: { (OCRMethodChange modification
+			           packageName: 'MyPackage';
+			           className: 'OCRReviewPresenterTest';
+			           selector: #a;
+			           oldSource: 'a ^ 1';
+			           newSource: 'a ^ 2';
+			           yourself) }.
+
+	self assert: ((OCRReviewTabsPresenter on: review) labelFor: review structuralTree first) equals: 'Code'
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testApplyKeepsTheReviewerEditsOfThePullRequest [
 
 	| review presenter next |
