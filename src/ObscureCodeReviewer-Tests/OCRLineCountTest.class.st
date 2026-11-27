@@ -41,8 +41,7 @@ OCRLineCountTest >> reviewWith: someChanges guide: aString [
 
 	^ (OCRReview
 		   repositoryName: 'my-project'
-		   base: OCRLastCommitBase new
-		   baseLabel: 'abc1234 (last commit)'
+		   reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
 		   changes: someChanges)
 		  guide: (OCRReviewGuide fromText: aString);
 		  yourself

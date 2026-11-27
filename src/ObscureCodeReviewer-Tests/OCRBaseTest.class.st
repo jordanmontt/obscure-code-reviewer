@@ -19,11 +19,7 @@ OCRBaseTest >> testReviewKeepsItsBase [
 
 	| base review |
 	base := OCRSplitBase fromBranchNamed: 'main'.
-	review := OCRReview
-		          repositoryName: 'my-project'
-		          base: base
-		          baseLabel: 'abc1234 (split from main)'
-		          changes: #(  ).
+	review := OCRReview repositoryName: 'my-project' reviewBase: (OCRReviewBase base: base commitId: 'abc1234') changes: #(  ).
 
 	self assert: review base equals: base
 ]

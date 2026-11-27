@@ -69,6 +69,12 @@ OCRChangeAreaPresenter >> isShowingDiff [
 	^ self layout presenters includes: diff
 ]
 
+{ #category : 'testing' }
+OCRChangeAreaPresenter >> markdownPresenter [
+
+	^ markdownPresenter
+]
+
 { #category : 'showing' }
 OCRChangeAreaPresenter >> show: aPresenter [
 
@@ -106,6 +112,13 @@ OCRChangeAreaPresenter >> showDiffFrom: anOldSource to: aNewSource [
 	diff
 		leftText: anOldSource;
 		rightText: aNewSource
+]
+
+{ #category : 'showing' }
+OCRChangeAreaPresenter >> showMarkdown: aSource aloneTitled: aTitle [
+
+	markdownPresenter show: aSource aloneTitled: aTitle.
+	self layout add: markdownPresenter
 ]
 
 { #category : 'showing' }

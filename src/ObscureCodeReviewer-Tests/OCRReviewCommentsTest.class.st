@@ -23,8 +23,7 @@ OCRReviewCommentsTest >> reviewWith: someChanges [
 
 	^ OCRReview
 		  repositoryName: 'my-project'
-		  base: OCRLastCommitBase new
-		  baseLabel: 'abc1234 (last commit)'
+		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
 		  changes: someChanges
 ]
 
@@ -123,6 +122,23 @@ OCRReviewCommentsTest >> testFeedbackHasGeneralCommentThenCommentedItems [
 	self assert: review feedback equals: (String lf join:
 		 #( 'Review of my-project, base abc1234 (last commit)' '' '## General' 'Good start.' '' '## MyClass>>#a (modified)'
 		    'Rename this' '' '' ))
+]
+
+{ #category : 'tests' }
+OCRReviewCommentsTest >> testFeedbackWarnsWhenTheBaseIsStale [
+
+	| review |
+	review := OCRReview
+		          repositoryName: 'my-project'
+		          reviewBase: (OCRReviewBase
+			           base: (OCRSplitBase fromBranchNamed: 'main')
+			           commitId: 'd274ab5'
+			           warning: 'main (d274ab5) is behind origin/main (ae02d54)')
+		          changes: #(  ).
+
+	self assert: review feedback equals: (String lf join:
+		 #( 'Review of my-project, base d274ab5 (split from main)' 'Warning: main (d274ab5) is behind origin/main (ae02d54)'
+		    '' '' ))
 ]
 
 { #category : 'tests' }

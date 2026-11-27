@@ -296,10 +296,7 @@ OCRIcebergReader >> reviewOf: aRepository against: aBase [
 	baseCommit := aBase commitIn: aRepository by: self.
 	^ OCRReview
 		  repositoryName: aRepository name
-		  base: aBase
-		  baseLabel: ('{1} ({2})' format: {
-			   baseCommit shortId.
-			   aBase description })
+		  reviewBase: (OCRReviewBase base: aBase commitId: baseCommit shortId warning: (aBase warningIn: aRepository by: self))
 		  changes:
 		  (self changesIn: (IceDiff from: aRepository workingCopy to: baseCommit)) , (self fileChangesIn: aRepository since: baseCommit)
 ]
@@ -332,4 +329,20 @@ OCRIcebergReader >> upstreamNamesOf: aRepository [
 	names := Dictionary new.
 	aRepository localBranches do: [ :each | each hasUpstream ifTrue: [ names at: each name put: each upstream name ] ].
 	^ names
+]
+
+{ #category : 'bases' }
+OCRIcebergReader >> warningIfBranchNamed: aBranchName isBehindIn: aRepository [
+	"When the local branch aBranchName lacks commits of its upstream, a split from it shows what the upstream already merged: say so, naming both commits. Empty for a remote branch, a branch without upstream, or one that is up to date."
+
+	| branch upstream |
+	branch := aRepository branchNamed: aBranchName ifAbsent: [ ^ '' ].
+	branch hasUpstream ifFalse: [ ^ '' ].
+	upstream := branch upstream.
+	(branch commit commonAncestorWith: upstream commit) = upstream commit ifTrue: [ ^ '' ].
+	^ '{1} ({2}) is behind {3} ({4})' format: {
+		  aBranchName.
+		  branch commit shortId.
+		  upstream name.
+		  upstream commit shortId }
 ]

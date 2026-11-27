@@ -5,8 +5,7 @@ Comments are attached to changes and topics by their reference (e.g. 'MyClass>>#
 
 	review := OCRReview
 		repositoryName: 'my-project'
-		base: OCRLastCommitBase new
-		baseLabel: 'abc1234 (last commit)'
+		reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
 		changes: someChanges.
 	review comment: 'Please rename this' on: aChange.
 	review feedback ""Markdown, ready to paste to the agent""
@@ -16,14 +15,13 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'repositoryName',
-		'baseLabel',
 		'changes',
 		'comments',
-		'base',
 		'guide',
 		'pullRequest',
 		'reviewedChanges',
-		'lineCounts'
+		'lineCounts',
+		'reviewBase'
 	],
 	#category : 'ObscureCodeReviewer-Model',
 	#package : 'ObscureCodeReviewer',
@@ -31,13 +29,9 @@ Class {
 }
 
 { #category : 'instance creation' }
-OCRReview class >> repositoryName: aRepositoryName base: aBase baseLabel: aBaseLabel changes: someChanges [
+OCRReview class >> repositoryName: aRepositoryName reviewBase: aReviewBase changes: someChanges [
 
-	^ self new
-		  setRepositoryName: aRepositoryName
-		  base: aBase
-		  baseLabel: aBaseLabel
-		  changes: someChanges
+	^ self new setRepositoryName: aRepositoryName reviewBase: aReviewBase changes: someChanges
 ]
 
 { #category : 'reviewed marks' }
@@ -51,14 +45,14 @@ OCRReview >> areAllReviewed: someChanges [
 OCRReview >> base [
 	"What my changes are compared to: an OCRLastCommitBase or an OCRSplitBase. A refresh uses the same base."
 
-	^ base
+	^ reviewBase base
 ]
 
 { #category : 'accessing' }
 OCRReview >> baseLabel [
 	"Describes the base commit of the review, e.g. 'abc1234 (split from main)'."
 
-	^ baseLabel
+	^ reviewBase label
 ]
 
 { #category : 'moved code' }
@@ -66,6 +60,13 @@ OCRReview >> baseSourceOf: aChange [
 	"What the new code of aChange is compared with: the old code it was moved from, or its own old code."
 
 	^ (self movedOriginOf: aChange ifNone: [ aChange ]) oldSource
+]
+
+{ #category : 'accessing' }
+OCRReview >> baseWarning [
+	"Why the base may be wrong, e.g. 'main (d274ab5) is behind origin/main (ae02d54)'; empty when it is not."
+
+	^ reviewBase warning
 ]
 
 { #category : 'accessing' }
@@ -158,6 +159,12 @@ OCRReview >> guide: aGuide [
 OCRReview >> guideWarnings [
 
 	^ (OCRTopicTreeBuilder changes: changes guide: guide) warnings
+]
+
+{ #category : 'testing' }
+OCRReview >> hasBaseWarning [
+
+	^ reviewBase hasWarning
 ]
 
 { #category : 'comments' }
@@ -274,11 +281,10 @@ OCRReview >> reviewedCount [
 ]
 
 { #category : 'initialization' }
-OCRReview >> setRepositoryName: aRepositoryName base: aBase baseLabel: aBaseLabel changes: someChanges [
+OCRReview >> setRepositoryName: aRepositoryName reviewBase: aReviewBase changes: someChanges [
 
 	repositoryName := aRepositoryName.
-	base := aBase.
-	baseLabel := aBaseLabel.
+	reviewBase := aReviewBase.
 	changes := someChanges asOrderedCollection
 ]
 

@@ -95,6 +95,13 @@ OCRReviewTabsPresenter >> isCommented: aNode [
 	^ aNode isCommentable and: [ review hasCommentOn: aNode commentable ]
 ]
 
+{ #category : 'testing' }
+OCRReviewTabsPresenter >> isSelectingInStructure [
+	"Whether the selection is the one of the Structure tab, not of the Topics tab."
+
+	^ activeTree == changesTree
+]
+
 { #category : 'selection' }
 OCRReviewTabsPresenter >> isSelectionEmpty [
 
@@ -217,12 +224,12 @@ OCRReviewTabsPresenter >> whenPullRequestChangedDo: aBlock [
 
 { #category : 'events' }
 OCRReviewTabsPresenter >> whenSelectionChangedDo: aBlock [
-	"The selection follows the tree clicked last."
+	"The selection follows the tree clicked last. A tree whose selection was cleared, as #showReview: clears both, does not take it."
 
-	changesTree whenSelectionChangedDo: [
-		activeTree := changesTree.
-		aBlock value ].
-	topicsTree whenSelectionChangedDo: [
-		activeTree := topicsTree.
-		aBlock value ]
+	{
+		changesTree.
+		topicsTree } do: [ :tree |
+			tree whenSelectionChangedDo: [
+				tree selection isEmpty ifFalse: [ activeTree := tree ].
+				aBlock value ] ]
 ]

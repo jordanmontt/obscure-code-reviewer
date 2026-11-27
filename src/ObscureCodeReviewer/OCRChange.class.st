@@ -294,6 +294,12 @@ OCRChange >> showContentsIn: aChangeArea comparedWith: aBaseSource [
 
 	(self isAddition and: [ aBaseSource isEmpty ]) ifTrue: [ ^ self show: newSource aloneTitled: 'Added' in: aChangeArea ].
 	self isRemoval ifTrue: [ ^ self show: aBaseSource aloneTitled: 'Removed' in: aChangeArea ].
+	self showDiffFrom: aBaseSource in: aChangeArea
+]
+
+{ #category : 'displaying' }
+OCRChange >> showDiffFrom: aBaseSource in: aChangeArea [
+
 	aChangeArea showDiffFrom: aBaseSource to: newSource
 ]
 

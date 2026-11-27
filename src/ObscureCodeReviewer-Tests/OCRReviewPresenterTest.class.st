@@ -13,9 +13,21 @@ OCRReviewPresenterTest >> emptyReview [
 
 	^ OCRReview
 		  repositoryName: 'my-project'
-		  base: OCRLastCommitBase new
-		  baseLabel: 'abc1234 (last commit)'
+		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
 		  changes: #(  )
+]
+
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> reviewWithEditableMethod [
+
+	^ OCRReview
+		  repositoryName: 'my-project'
+		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
+		  changes: { (OCRMethodChangeStub modification
+			   packageName: 'MyPackage';
+			   className: 'OCRReviewPresenterTest';
+			   selector: #emptyReview;
+			   yourself) }
 ]
 
 { #category : 'helpers' }
@@ -23,8 +35,7 @@ OCRReviewPresenterTest >> reviewWithMethod: aSelector [
 
 	^ OCRReview
 		  repositoryName: 'my-project'
-		  base: OCRLastCommitBase new
-		  baseLabel: 'abc1234 (last commit)'
+		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
 		  changes: { (OCRMethodChange modification
 			   packageName: 'MyPackage';
 			   className: 'OCRReviewPresenterTest';
@@ -36,6 +47,21 @@ OCRReviewPresenterTest >> reviewWithMethod: aSelector [
 OCRReviewPresenterTest >> shortcutOf: aPresenter keyed: aKeyCombination [
 
 	^ aPresenter actions allCommands detect: [ :each | each shortcutKey = aKeyCombination ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testANewReviewKeepsTheSelectionInTheStructureTab [
+	"Showing a new review resets both trees; clearing the Topics tree must not move the selection there."
+
+	| tabs |
+	tabs := OCRReviewTabsPresenter on: (self reviewWithMethod: #a).
+	tabs whenSelectionChangedDo: [ ].
+	tabs selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
+
+	tabs showReview: (self reviewWithMethod: #a).
+	tabs selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
+
+	self assert: tabs isSelectingInStructure
 ]
 
 { #category : 'tests' }
@@ -130,6 +156,21 @@ OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testSavingAnEditKeepsTheSelection [
+
+	| presenter |
+	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
+	presenter nextReview: self reviewWithEditableMethod.
+	presenter reloadReviewWithGuide: OCRReviewGuide empty selecting: 'OCRReviewPresenterTest>>#emptyReview'.
+	presenter startEditing.
+
+	presenter saveEdit.
+
+	self assert: presenter hasSelectedChange.
+	self assert: presenter selectedChange reference equals: 'OCRReviewPresenterTest>>#emptyReview'
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testShortcutsAreDisabledLikeTheirButtonsWhenNothingIsSelected [
 	"Cmd+R marks as reviewed, Cmd+B browses, Cmd+E edits, Cmd+M and Cmd+N browse implementors and senders: they need a selection."
 
@@ -189,6 +230,33 @@ OCRReviewPresenterTest >> testTheMenuItemsHaveTheIconsOfTheirButtons [
 		($m actionModifier -> #smallFind).
 		($n actionModifier -> #smallFind) } do: [ :each |
 		self assert: (self shortcutOf: presenter keyed: each key) iconName equals: each value ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheTitleHasNoWarningWhenTheBaseIsUpToDate [
+
+	self
+		assert: (OCRReviewPresenter on: self emptyReview) windowTitle
+		equals: 'Obscure Code Reviewer - my-project - base: abc1234 (last commit)'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheTitleWarnsWhenTheBaseIsStale [
+	"The local main is behind its upstream: a split from it shows what the upstream already merged."
+
+	| review |
+	review := OCRReview
+		          repositoryName: 'my-project'
+		          reviewBase: (OCRReviewBase
+			           base: (OCRSplitBase fromBranchNamed: 'main')
+			           commitId: 'd274ab5'
+			           warning: 'main (d274ab5) is behind origin/main (ae02d54)')
+		          changes: #(  ).
+
+	self
+		assert: (OCRReviewPresenter on: review) windowTitle
+		equals:
+		'Obscure Code Reviewer - my-project - base: d274ab5 (split from main) - WARNING: main (d274ab5) is behind origin/main (ae02d54)'
 ]
 
 { #category : 'tests' }

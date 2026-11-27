@@ -35,3 +35,10 @@ OCRLastCommitBase >> hash [
 
 	^ self class hash
 ]
+
+{ #category : 'reading' }
+OCRLastCommitBase >> warningIn: aRepository by: aReader [
+	"The last commit is never stale."
+
+	^ ''
+]

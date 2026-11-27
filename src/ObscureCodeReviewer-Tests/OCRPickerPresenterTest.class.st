@@ -13,11 +13,11 @@ OCRPickerPresenterTest >> testTheReviewRunsInThePickerApplication [
 
 	| picker presenter |
 	picker := OCRPickerPresenter new.
-	presenter := picker presenterOnReview: (OCRReview
-		              repositoryName: 'my-project'
-		              base: OCRLastCommitBase new
-		              baseLabel: 'abc1234 (last commit)'
-		              changes: #(  )).
+	presenter := picker presenterOnReview:
+		             (OCRReview
+			              repositoryName: 'my-project'
+			              reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
+			              changes: #(  )).
 
 	self assert: (picker application isKindOf: OCRApplication).
 	self assert: presenter application identicalTo: picker application

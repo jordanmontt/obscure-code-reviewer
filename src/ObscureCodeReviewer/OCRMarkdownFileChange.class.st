@@ -12,7 +12,13 @@ Class {
 }
 
 { #category : 'displaying' }
-OCRMarkdownFileChange >> showContentsIn: aChangeArea comparedWith: aBaseSource [
+OCRMarkdownFileChange >> show: aSource aloneTitled: aTitle in: aChangeArea [
+
+	aChangeArea showMarkdown: aSource aloneTitled: aTitle
+]
+
+{ #category : 'displaying' }
+OCRMarkdownFileChange >> showDiffFrom: aBaseSource in: aChangeArea [
 
 	aChangeArea showMarkdownFrom: aBaseSource to: newSource
 ]

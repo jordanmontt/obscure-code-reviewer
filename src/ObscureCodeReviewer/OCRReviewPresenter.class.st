@@ -457,7 +457,12 @@ OCRReviewPresenter >> toggleReviewed [
 { #category : 'accessing' }
 OCRReviewPresenter >> windowTitle [
 
-	^ 'Obscure Code Reviewer - {1} - base: {2}' format: {
-		  review repositoryName.
-		  review baseLabel }
+	| title |
+	title := 'Obscure Code Reviewer - {1} - base: {2}' format: {
+		         review repositoryName.
+		         review baseLabel }.
+	review hasBaseWarning ifFalse: [ ^ title ].
+	^ '{1} - WARNING: {2}' format: {
+		  title.
+		  review baseWarning }
 ]
