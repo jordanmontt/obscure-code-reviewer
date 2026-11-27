@@ -195,6 +195,24 @@ OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testRefreshUpdatesTheWindowTitle [
+	"After new commits, a refresh compares with another base commit: the title says so."
+
+	| presenter window |
+	presenter := OCRReviewPresenterStub on: self emptyReview.
+	window := presenter asWindow.
+	presenter nextReview:
+		(OCRReview
+			 repositoryName: 'my-project'
+			 reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'def5678')
+			 changes: #(  )).
+
+	presenter refresh.
+
+	self assert: window title equals: 'Obscure Code Reviewer - my-project - base: def5678 (last commit)'
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testSavingAnEditKeepsTheSelection [
 
 	| presenter |
@@ -324,6 +342,14 @@ OCRReviewPresenterTest >> testTheWindowRunsInTheReviewerApplication [
 	presenter := OCRReviewPresenter on: self emptyReview.
 
 	self assert: (presenter application isKindOf: OCRApplication)
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheWindowTitleNamesTheRepositoryAndTheBase [
+
+	self
+		assert: (OCRReviewPresenter on: self emptyReview) asWindow title
+		equals: 'Obscure Code Reviewer - my-project - base: abc1234 (last commit)'
 ]
 
 { #category : 'tests' }
