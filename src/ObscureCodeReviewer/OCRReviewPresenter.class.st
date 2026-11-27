@@ -366,8 +366,7 @@ OCRReviewPresenter >> recomputedReview [
 
 { #category : 'actions' }
 OCRReviewPresenter >> refresh [
-	"Recompute the changes from the image, with the same guide. The comments are kept (see OCRReview>>#takeCommentsFrom:),
-	and so is the selected change or topic when it is still there."
+	"Recompute the changes from the image, with the same guide (see #refreshWithGuide:)."
 
 	self refreshWithGuide: review guide
 ]
@@ -386,30 +385,16 @@ OCRReviewPresenter >> refreshAction [
 
 { #category : 'actions' }
 OCRReviewPresenter >> refreshWithGuide: aGuide [
-	"Recompute the changes from the image and show them with aGuide. The comments are kept (see OCRReview>>#takeCommentsFrom:),
-	and so is the selected change or topic when it is still there."
+	"Recompute the changes from the image against the same base, and show them with aGuide. What the reviewer did is kept (see OCRReview>>#continueFrom:), and so is the selected change or topic when it is still there."
 
-	self hasSelectedCommentable ifFalse: [ ^ self reloadReviewWithGuide: aGuide ].
-	self reloadReviewWithGuide: aGuide selecting: self selectedCommentable reference
-]
-
-{ #category : 'actions' }
-OCRReviewPresenter >> reloadReviewWithGuide: aGuide [
-	"Recompute the review against the same base, with aGuide, keeping what the reviewer did."
-
-	| newReview |
+	| selected newReview |
+	selected := tabs selectedNode.
 	newReview := self recomputedReview.
 	newReview guide: aGuide.
 	newReview continueFrom: review.
 	review := newReview.
-	self showReview
-]
-
-{ #category : 'actions' }
-OCRReviewPresenter >> reloadReviewWithGuide: aGuide selecting: aReference [
-
-	self reloadReviewWithGuide: aGuide.
-	tabs selectItemReferenced: aReference
+	self showReview.
+	selected isCommentable ifTrue: [ self selectItemReferenced: selected commentable reference ]
 ]
 
 { #category : 'actions' }
@@ -451,6 +436,13 @@ OCRReviewPresenter >> saveEdit [
 	(changeArea compileEditOf: self selectedChange) ifFalse: [ ^ self ].
 	self stopEditing.
 	self refresh
+]
+
+{ #category : 'selection' }
+OCRReviewPresenter >> selectItemReferenced: aReference [
+	"Select the change or topic written aReference, e.g. 'MyClass>>#myMethod', when it is in the tree shown."
+
+	tabs selectItemReferenced: aReference
 ]
 
 { #category : 'selection' }

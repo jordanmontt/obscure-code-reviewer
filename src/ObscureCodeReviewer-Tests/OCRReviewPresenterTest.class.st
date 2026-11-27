@@ -27,7 +27,7 @@ OCRReviewPresenterTest >> presenterOnEditableMethod [
 	| presenter |
 	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
 	presenter nextReview: self reviewWithEditableMethod.
-	presenter reloadReviewWithGuide: OCRReviewGuide empty selecting: 'OCRReviewPresenterTest>>#emptyReview'.
+	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#emptyReview'.
 	^ presenter
 ]
 
@@ -159,7 +159,7 @@ OCRReviewPresenterTest >> testImplementorsAndSendersOfASelectedMethod [
 	presenter := OCRReviewPresenterStub on: (self reviewWithMethod: #a).
 	presenter nextReview: (self reviewWithMethod: #a).
 
-	presenter reloadReviewWithGuide: OCRReviewGuide empty selecting: 'OCRReviewPresenterTest>>#a'.
+	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
 
 	self assert: (self shortcutOf: presenter keyed: $m actionModifier) canBeExecuted.
 	self assert: (self shortcutOf: presenter keyed: $n actionModifier) canBeExecuted
@@ -200,7 +200,7 @@ OCRReviewPresenterTest >> testSavingAnEditKeepsTheSelection [
 	| presenter |
 	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
 	presenter nextReview: self reviewWithEditableMethod.
-	presenter reloadReviewWithGuide: OCRReviewGuide empty selecting: 'OCRReviewPresenterTest>>#emptyReview'.
+	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#emptyReview'.
 	presenter startEditing.
 
 	presenter saveEdit.
