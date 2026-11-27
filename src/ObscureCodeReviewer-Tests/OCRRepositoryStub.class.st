@@ -1,34 +1,34 @@
 "
-I am an Iceberg repository without git or loaded packages: a disk (location), git's HEAD commit (headCommit) and the commit Iceberg believes is checked out (referenceCommit), which lags behind HEAD after a commit made outside Iceberg.
+I am an Iceberg repository without git: a disk (location) and the names of the packages loaded from me, so OCRIcebergReader can turn the paths git names into file changes without a git repository.
 "
 Class {
 	#name : 'OCRRepositoryStub',
 	#superclass : 'Object',
 	#instVars : [
 		'location',
-		'referenceCommit',
-		'headCommit'
+		'loadedPackageNames'
 	],
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
 
-{ #category : 'accessing' }
-OCRRepositoryStub >> headCommit [
+{ #category : 'initialization' }
+OCRRepositoryStub >> initialize [
 
-	^ headCommit
+	super initialize.
+	loadedPackageNames := #(  )
 ]
 
 { #category : 'accessing' }
-OCRRepositoryStub >> headCommit: aCommit [
+OCRRepositoryStub >> loadedPackageNames: someNames [
 
-	headCommit := aCommit
+	loadedPackageNames := someNames
 ]
 
 { #category : 'accessing' }
 OCRRepositoryStub >> loadedPackages [
 
-	^ #(  )
+	^ loadedPackageNames collect: [ :each | IcePackage named: each repository: self ]
 ]
 
 { #category : 'accessing' }
@@ -44,18 +44,6 @@ OCRRepositoryStub >> location: aFileReference [
 ]
 
 { #category : 'accessing' }
-OCRRepositoryStub >> referenceCommit [
-
-	^ referenceCommit
-]
-
-{ #category : 'accessing' }
-OCRRepositoryStub >> referenceCommit: aCommit [
-
-	referenceCommit := aCommit
-]
-
-{ #category : 'accessing' }
 OCRRepositoryStub >> subdirectoryPath [
 
 	^ Path from: 'src'
@@ -63,7 +51,7 @@ OCRRepositoryStub >> subdirectoryPath [
 
 { #category : 'accessing' }
 OCRRepositoryStub >> workingCopy [
-	"Iceberg's working copy answers referenceCommit; I play both roles."
+	"IcePackage asks its repository for it; I play both roles."
 
 	^ self
 ]
