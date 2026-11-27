@@ -217,6 +217,6 @@ OCRReviewTabsPresenter >> whenSelectionChangedDo: aBlock [
 		changesTree.
 		topicsTree } do: [ :tree |
 			tree whenSelectionChangedDo: [
-				tree selection isEmpty ifFalse: [ activeTree := tree ].
+				tree selection isNotEmpty ifTrue: [ activeTree := tree ].
 				aBlock value ] ]
 ]
