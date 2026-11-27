@@ -166,6 +166,19 @@ OCRReviewPresenterTest >> testImplementorsAndSendersOfASelectedMethod [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testNothingSelectedIsANodeWithNothingToShow [
+	"No nil: the window asks the selected node, whatever is selected."
+
+	| node |
+	node := (OCRReviewTabsPresenter on: self emptyReview) selectedNode.
+
+	self deny: node hasChange.
+	self deny: node isCommentable.
+	self deny: node canBrowse.
+	self assert: node changesBelow isEmpty
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 
 	| guide presenter next |

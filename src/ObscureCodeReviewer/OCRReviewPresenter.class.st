@@ -110,7 +110,6 @@ OCRReviewPresenter >> canBrowseMessagesOfSelection [
 { #category : 'testing' }
 OCRReviewPresenter >> canBrowseSelection [
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode canBrowse
 ]
 
@@ -123,7 +122,6 @@ OCRReviewPresenter >> canEditSelection [
 { #category : 'selection' }
 OCRReviewPresenter >> canMarkSelection [
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode changesBelow isNotEmpty
 ]
 
@@ -248,14 +246,12 @@ OCRReviewPresenter >> enableReviewing: aBoolean [
 OCRReviewPresenter >> hasSelectedChange [
 	"Nothing selected, or a section, package, topic or unchanged class selected, means no change to show."
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode hasChange
 ]
 
 { #category : 'selection' }
 OCRReviewPresenter >> hasSelectedCommentable [
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode isCommentable
 ]
 
@@ -516,7 +512,6 @@ OCRReviewPresenter >> showReview [
 OCRReviewPresenter >> showSelection [
 
 	self updateToolbar.
-	tabs isSelectionEmpty ifTrue: [ ^ self showNothing ].
 	tabs selectedNode showIn: self
 ]
 

@@ -102,12 +102,6 @@ OCRReviewTabsPresenter >> isSelectingInStructure [
 	^ activeTree == changesTree
 ]
 
-{ #category : 'selection' }
-OCRReviewTabsPresenter >> isSelectionEmpty [
-
-	^ activeTree selection isEmpty
-]
-
 { #category : 'showing' }
 OCRReviewTabsPresenter >> labelFor: aNode [
 	"The node, and whether it is reviewed and commented."
@@ -157,9 +151,9 @@ OCRReviewTabsPresenter >> selectItemReferenced: aReference [
 
 { #category : 'selection' }
 OCRReviewTabsPresenter >> selectedNode [
-	"Only valid when #isSelectionEmpty is false."
+	"With nothing selected, an empty node: nothing to show, comment, browse or mark."
 
-	^ activeTree selectedItem
+	^ activeTree selectedItem ifNil: [ OCRContainerNode named: 'Nothing selected' ]
 ]
 
 { #category : 'accessing - model' }
