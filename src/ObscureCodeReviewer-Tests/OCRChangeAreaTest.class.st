@@ -228,6 +228,22 @@ OCRChangeAreaTest >> testAnAddedMethodMovedFromAnotherShowsItsDiff [
 ]
 
 { #category : 'tests' }
+OCRChangeAreaTest >> testTheNotesAboveAChangeWrap [
+	"What the guide says about a change can be long: it wraps over as many lines as it needs."
+
+	area
+		showChange: ((self method: OCRMethodChange modification)
+			 oldSource: 'foo ^ 1';
+			 newSource: 'foo ^ 2';
+			 yourself)
+		comparedWith: 'foo ^ 1'
+		notes: 'Why: a long explanation'.
+
+	self assert: area shownNotes equals: 'Why: a long explanation'.
+	self assert: area wrapsNotes
+]
+
+{ #category : 'tests' }
 OCRChangeAreaTest >> testTheProtocolOfARemovedMethodIsInTheTitle [
 
 	| source |
@@ -255,6 +271,19 @@ OCRChangeAreaTest >> testTheProtocolOfAnAddedMethodIsInTheTitle [
 
 	self assert: area shownSource equals: 'foo ^ 2'.
 	self assert: area shownSourceTitle equals: 'Added — protocol: accessing'
+]
+
+{ #category : 'tests' }
+OCRChangeAreaTest >> testWhyMicrodownCannotRenderWraps [
+	"The error can be long: the line saying why the source is shown wraps."
+
+	| presenter reason |
+	presenter := OCRMarkdownFilePresenterStub new.
+
+	presenter showFrom: '# Notes' to: '# Notes!'.
+
+	reason := presenter layout allPresenters detect: [ :each | each class = SpLabelPresenter ].
+	self assert: reason isWrap
 ]
 
 { #category : 'helpers' }

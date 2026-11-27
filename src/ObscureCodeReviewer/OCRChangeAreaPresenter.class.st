@@ -14,12 +14,12 @@ Class {
 		'diff',
 		'editor',
 		'topicText',
-		'notesText',
 		'binaryFilePresenter',
 		'isEditing',
 		'markdownPresenter',
 		'sourceText',
-		'sourceTitle'
+		'sourceTitle',
+		'notesLabel'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -46,9 +46,9 @@ OCRChangeAreaPresenter >> initializePresenters [
 	topicText := self newText
 		             beNotEditable;
 		             yourself.
-	notesText := self newText
-		             beNotEditable;
-		             yourself.
+	notesLabel := self newLabel
+		              beWrap;
+		              yourself.
 	binaryFilePresenter := self instantiate: OCRBinaryFilePresenter.
 	markdownPresenter := self instantiate: OCRMarkdownFilePresenter.
 	isEditing := false.
@@ -92,12 +92,12 @@ OCRChangeAreaPresenter >> showBinaryFile: aBinaryFileChange [
 
 { #category : 'showing' }
 OCRChangeAreaPresenter >> showChange: aChange comparedWith: aBaseSource notes: aString [
-	"aString is what the guide says about the change alone; it goes above the change."
+	"aString is what the guide says about the change alone; it goes above the change, on as many lines as it needs."
 
 	self layout removeAll.
 	aString ifNotEmpty: [
-		notesText text: aString.
-		self layout add: notesText height: 50 ].
+		notesLabel label: aString.
+		self layout add: notesLabel expand: false ].
 	aChange showContentsIn: self comparedWith: aBaseSource
 ]
 
@@ -163,6 +163,13 @@ OCRChangeAreaPresenter >> showTopic: aTopic [
 ]
 
 { #category : 'testing' }
+OCRChangeAreaPresenter >> shownNotes [
+	"What the guide says about the change shown, above it."
+
+	^ notesLabel label
+]
+
+{ #category : 'testing' }
 OCRChangeAreaPresenter >> shownSource [
 	"The source shown alone, for an added or removed change."
 
@@ -197,4 +204,10 @@ OCRChangeAreaPresenter >> whenSaveRequestedDo: aBlock [
 	"aBlock is evaluated when the reviewer presses Cmd+S in the editor."
 
 	editor whenSubmitDo: [ :text | aBlock value ]
+]
+
+{ #category : 'testing' }
+OCRChangeAreaPresenter >> wrapsNotes [
+
+	^ notesLabel isWrap
 ]
