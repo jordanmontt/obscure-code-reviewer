@@ -47,11 +47,25 @@ OCRReview >> base [
 	^ reviewBase base
 ]
 
+{ #category : 'accessing' }
+OCRReview >> baseLabel [
+	"Describes the base commit of the review, e.g. 'abc1234 (split from main)'."
+
+	^ reviewBase label
+]
+
 { #category : 'moved code' }
 OCRReview >> baseSourceOf: aChange [
 	"What the new code of aChange is compared with: the old code it was moved from, or its own old code."
 
 	^ (self movedOriginOf: aChange ifNone: [ aChange ]) oldSource
+]
+
+{ #category : 'accessing' }
+OCRReview >> baseWarning [
+	"Why the base may be wrong, e.g. 'main (d274ab5) is behind origin/main (ae02d54)'; empty when it is not."
+
+	^ reviewBase warning
 ]
 
 { #category : 'accessing' }
@@ -146,6 +160,12 @@ OCRReview >> guideWarnings [
 	^ (OCRTopicTreeBuilder changes: changes guide: guide) warnings
 ]
 
+{ #category : 'testing' }
+OCRReview >> hasBaseWarning [
+
+	^ reviewBase hasWarning
+]
+
 { #category : 'comments' }
 OCRReview >> hasCommentOn: anItem [
 
@@ -231,13 +251,6 @@ OCRReview >> pullRequest: aPullRequest [
 OCRReview >> repositoryName [
 
 	^ repositoryName
-]
-
-{ #category : 'accessing' }
-OCRReview >> reviewBase [
-	"What my changes are compared to, the commit it resolved to, and why it may be wrong (an OCRReviewBase)."
-
-	^ reviewBase
 ]
 
 { #category : 'refreshing' }

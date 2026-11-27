@@ -59,18 +59,16 @@ OCRFeedbackWriter >> writeGeneralCommentOf: aReview on: aStream [
 { #category : 'private' }
 OCRFeedbackWriter >> writeHeaderOf: aReview on: aStream [
 
-	| base |
-	base := aReview reviewBase.
 	aStream
 		nextPutAll: 'Review of ';
 		nextPutAll: aReview repositoryName;
 		nextPutAll: ', base ';
-		nextPutAll: base label;
+		nextPutAll: aReview baseLabel;
 		lf.
-	base hasWarning ifTrue: [
+	aReview hasBaseWarning ifTrue: [
 		aStream
 			nextPutAll: 'Warning: ';
-			nextPutAll: base warning;
+			nextPutAll: aReview baseWarning;
 			lf ].
 	aReview reviewedCount > 0 ifTrue: [
 		aStream
