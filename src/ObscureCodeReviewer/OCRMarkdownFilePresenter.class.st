@@ -171,7 +171,10 @@ OCRMarkdownFilePresenter >> unrenderedLayoutBecause: anError [
 
 	^ SpBoxLayout newTopToBottom
 		  spacing: 5;
-		  add: (self newLabel label: ('Could not render with Microdown ({1}): showing the source.' format: { anError description }))
+		  add: (self newLabel
+			   label: ('Could not render with Microdown ({1}): showing the source.' format: { anError description });
+			   beWrap;
+			   yourself)
 		  expand: false;
 		  add: self sourceLayout;
 		  yourself
