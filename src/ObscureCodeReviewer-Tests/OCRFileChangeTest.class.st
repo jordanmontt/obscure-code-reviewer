@@ -3,55 +3,10 @@ I test OCRFileChange: files that are not code loaded in the image, and where the
 "
 Class {
 	#name : 'OCRFileChangeTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
-
-{ #category : 'helpers' }
-OCRFileChangeTest >> fileChange: aPath [
-
-	^ OCRFileChange modification
-		  path: aPath;
-		  oldSource: 'old';
-		  newSource: 'new';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRFileChangeTest >> labelsOf: someNodes [
-
-	^ someNodes collect: [ :each | each label ] as: Array
-]
-
-{ #category : 'helpers' }
-OCRFileChangeTest >> methodChange: aSelector class: aClassName [
-
-	^ OCRMethodChange modification
-		  packageName: 'MyProject';
-		  className: aClassName;
-		  selector: aSelector;
-		  oldSource: aSelector , ' ^ 1';
-		  newSource: aSelector , ' ^ 2';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRFileChangeTest >> reviewWith: someChanges [
-
-	^ self reviewWith: someChanges guide: ''
-]
-
-{ #category : 'helpers' }
-OCRFileChangeTest >> reviewWith: someChanges guide: aString [
-
-	^ (OCRReview
-		   repositoryName: 'my-project'
-		   reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
-		   changes: someChanges)
-		  guide: (OCRReviewGuide fromText: aString);
-		  yourself
-]
 
 { #category : 'tests' }
 OCRFileChangeTest >> testAFileIsNamedAndReferencedByItsPath [

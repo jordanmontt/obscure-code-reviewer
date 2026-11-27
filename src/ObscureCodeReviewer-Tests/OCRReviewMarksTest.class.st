@@ -3,49 +3,10 @@ I test the Reviewed marks: marking changes, nodes, keeping marks across a refres
 "
 Class {
 	#name : 'OCRReviewMarksTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
-
-{ #category : 'helpers' }
-OCRReviewMarksTest >> fileChange: aPath [
-
-	^ OCRFileChange modification
-		  path: aPath;
-		  oldSource: 'old';
-		  newSource: 'new';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRReviewMarksTest >> methodChange: aSelector class: aClassName [
-
-	^ OCRMethodChange modification
-		  packageName: 'MyProject';
-		  className: aClassName;
-		  selector: aSelector;
-		  oldSource: aSelector , ' ^ 1';
-		  newSource: aSelector , ' ^ 2';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRReviewMarksTest >> reviewWith: someChanges [
-
-	^ self reviewWith: someChanges guide: ''
-]
-
-{ #category : 'helpers' }
-OCRReviewMarksTest >> reviewWith: someChanges guide: aString [
-
-	^ (OCRReview
-		   repositoryName: 'my-project'
-		   reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
-		   changes: someChanges)
-		  guide: (OCRReviewGuide fromText: aString);
-		  yourself
-]
 
 { #category : 'tests' }
 OCRReviewMarksTest >> testANodeIsReviewedWhenAllItsChangesAre [

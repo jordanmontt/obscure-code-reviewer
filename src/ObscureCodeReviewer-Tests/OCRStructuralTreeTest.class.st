@@ -1,15 +1,15 @@
 "
-I test OCRReview, mainly how it organizes its changes into a tree.
+I test the Structure tree of a review (OCRStructuralTreeBuilder): sections, packages, classes and methods, their order, icons and labels, and what can be browsed.
 "
 Class {
-	#name : 'OCRReviewTest',
-	#superclass : 'TestCase',
+	#name : 'OCRStructuralTreeTest',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
 
 { #category : 'helpers' }
-OCRReviewTest >> classChange: aClassName package: aPackageName [
+OCRStructuralTreeTest >> classChange: aClassName package: aPackageName [
 
 	^ OCRClassChange modification
 		  packageName: aPackageName;
@@ -18,14 +18,14 @@ OCRReviewTest >> classChange: aClassName package: aPackageName [
 ]
 
 { #category : 'helpers' }
-OCRReviewTest >> codePackagesOf: someChanges [
+OCRStructuralTreeTest >> codePackagesOf: someChanges [
 	"The package nodes of the Code section."
 
 	^ (self reviewWith: someChanges) structuralTree first children
 ]
 
 { #category : 'helpers' }
-OCRReviewTest >> methodChange: aSelector class: aClassName package: aPackageName [
+OCRStructuralTreeTest >> methodChange: aSelector class: aClassName package: aPackageName [
 
 	^ OCRMethodChange modification
 		  packageName: aPackageName;
@@ -35,22 +35,13 @@ OCRReviewTest >> methodChange: aSelector class: aClassName package: aPackageName
 ]
 
 { #category : 'helpers' }
-OCRReviewTest >> namesOf: someNodes [
+OCRStructuralTreeTest >> namesOf: someNodes [
 
 	^ someNodes collect: [ :each | each name ] as: Array
 ]
 
-{ #category : 'helpers' }
-OCRReviewTest >> reviewWith: someChanges [
-
-	^ OCRReview
-		  repositoryName: 'my-project'
-		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
-		  changes: someChanges
-]
-
 { #category : 'tests' }
-OCRReviewTest >> testAClassNotInTheImageCannotBeBrowsed [
+OCRStructuralTreeTest >> testAClassNotInTheImageCannotBeBrowsed [
 
 	| classNode |
 	classNode := (self reviewWith: { (self methodChange: #a class: 'OCRNoSuchClass' package: 'MyPackage') }) structuralTree first
@@ -60,19 +51,20 @@ OCRReviewTest >> testAClassNotInTheImageCannotBeBrowsed [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testAnUnchangedClassCanBeBrowsed [
+OCRStructuralTreeTest >> testAnUnchangedClassCanBeBrowsed [
 
 	| package |
 	package := (self reviewWith: {
-		            (self methodChange: #a class: 'OCRReviewTest' package: 'MyPackage').
-		            (self methodChange: #b class: 'OCRReviewTest class' package: 'MyPackage') }) structuralTree first children first.
+		            (self methodChange: #a class: 'OCRStructuralTreeTest' package: 'MyPackage').
+		            (self methodChange: #b class: 'OCRStructuralTreeTest class' package: 'MyPackage') }) structuralTree first children
+		           first.
 
 	self assert: package children first canBrowse.
 	self assert: package children second canBrowse
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testChangedClassDefinitionIsTheClassNode [
+OCRStructuralTreeTest >> testChangedClassDefinitionIsTheClassNode [
 
 	| classChange classNode |
 	classChange := self classChange: 'MyClass' package: 'MyPackage'.
@@ -85,7 +77,7 @@ OCRReviewTest >> testChangedClassDefinitionIsTheClassNode [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testChangesAreSplitIntoCodeTestsAndBaseline [
+OCRStructuralTreeTest >> testChangesAreSplitIntoCodeTestsAndBaseline [
 
 	| tree |
 	tree := (self reviewWith: {
@@ -98,7 +90,7 @@ OCRReviewTest >> testChangesAreSplitIntoCodeTestsAndBaseline [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testClassSideMethodsHaveTheirOwnNode [
+OCRStructuralTreeTest >> testClassSideMethodsHaveTheirOwnNode [
 
 	| packages |
 	packages := self codePackagesOf: {
@@ -109,7 +101,7 @@ OCRReviewTest >> testClassSideMethodsHaveTheirOwnNode [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testEmptyReview [
+OCRStructuralTreeTest >> testEmptyReview [
 
 	| review |
 	review := self reviewWith: #(  ).
@@ -119,7 +111,7 @@ OCRReviewTest >> testEmptyReview [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testEmptySectionsAreLeftOut [
+OCRStructuralTreeTest >> testEmptySectionsAreLeftOut [
 
 	| tree |
 	tree := (self reviewWith: { (self methodChange: #a class: 'MyClass' package: 'MyProject') }) structuralTree.
@@ -128,7 +120,7 @@ OCRReviewTest >> testEmptySectionsAreLeftOut [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testExtensionMethodsHaveTheirOwnNode [
+OCRStructuralTreeTest >> testExtensionMethodsHaveTheirOwnNode [
 
 	| extension packages |
 	extension := self methodChange: #isMyThing class: 'Object' package: 'MyPackage'.
@@ -139,7 +131,7 @@ OCRReviewTest >> testExtensionMethodsHaveTheirOwnNode [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testMethodNodeLabelShowsKind [
+OCRStructuralTreeTest >> testMethodNodeLabelShowsKind [
 
 	| added methodNode |
 	added := OCRMethodChange addition
@@ -153,7 +145,7 @@ OCRReviewTest >> testMethodNodeLabelShowsKind [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testMethodsAreSortedBySelector [
+OCRStructuralTreeTest >> testMethodsAreSortedBySelector [
 
 	| classNode |
 	classNode := (self codePackagesOf: {
@@ -164,7 +156,7 @@ OCRReviewTest >> testMethodsAreSortedBySelector [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testNodesHaveIconsForWhatTheyAre [
+OCRStructuralTreeTest >> testNodesHaveIconsForWhatTheyAre [
 
 	| extension section package |
 	extension := self methodChange: #isMyThing class: 'Object' package: 'MyProject'.
@@ -182,7 +174,7 @@ OCRReviewTest >> testNodesHaveIconsForWhatTheyAre [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testPackagesAndClassesAreSortedByName [
+OCRStructuralTreeTest >> testPackagesAndClassesAreSortedByName [
 
 	| packages |
 	packages := self codePackagesOf: {
@@ -195,17 +187,18 @@ OCRReviewTest >> testPackagesAndClassesAreSortedByName [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testSectionsAndPackagesCannotBeBrowsed [
+OCRStructuralTreeTest >> testSectionsAndPackagesCannotBeBrowsed [
 
 	| section |
-	section := (self reviewWith: { (self methodChange: #a class: 'OCRReviewTest' package: 'MyPackage') }) structuralTree first.
+	section := (self reviewWith: { (self methodChange: #a class: 'OCRStructuralTreeTest' package: 'MyPackage') }) structuralTree
+		           first.
 
 	self deny: section canBrowse.
 	self deny: section children first canBrowse
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testSectionsAndPackagesHaveNoChange [
+OCRStructuralTreeTest >> testSectionsAndPackagesHaveNoChange [
 
 	| section |
 	section := (self reviewWith: { (self methodChange: #a class: 'MyClass' package: 'MyPackage') }) structuralTree first.
@@ -215,7 +208,7 @@ OCRReviewTest >> testSectionsAndPackagesHaveNoChange [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testTreeGroupsMethodsByPackageThenClass [
+OCRStructuralTreeTest >> testTreeGroupsMethodsByPackageThenClass [
 
 	| packages |
 	packages := self codePackagesOf: {
@@ -228,7 +221,7 @@ OCRReviewTest >> testTreeGroupsMethodsByPackageThenClass [
 ]
 
 { #category : 'tests' }
-OCRReviewTest >> testUnchangedClassNodeHasNoChange [
+OCRStructuralTreeTest >> testUnchangedClassNodeHasNoChange [
 
 	| classNode |
 	classNode := (self codePackagesOf: { (self methodChange: #a class: 'MyClass' package: 'MyPackage') }) first children first.

@@ -3,7 +3,7 @@ I test OCRReviewPresenter without opening it: the guide is the one the review co
 "
 Class {
 	#name : 'OCRReviewPresenterTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
@@ -11,10 +11,7 @@ Class {
 { #category : 'helpers' }
 OCRReviewPresenterTest >> emptyReview [
 
-	^ OCRReview
-		  repositoryName: 'my-project'
-		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
-		  changes: #(  )
+	^ self reviewWith: #(  )
 ]
 
 { #category : 'helpers' }
@@ -32,15 +29,9 @@ OCRReviewPresenterTest >> reviewWithEditableMethod [
 
 { #category : 'helpers' }
 OCRReviewPresenterTest >> reviewWithMethod: aSelector [
+	"A method of this class, so implementors and senders find it."
 
-	^ OCRReview
-		  repositoryName: 'my-project'
-		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
-		  changes: { (OCRMethodChange modification
-			   packageName: 'MyPackage';
-			   className: 'OCRReviewPresenterTest';
-			   selector: aSelector;
-			   yourself) }
+	^ self reviewWith: { (self methodChange: aSelector class: 'OCRReviewPresenterTest') }
 ]
 
 { #category : 'helpers' }
@@ -69,16 +60,7 @@ OCRReviewPresenterTest >> testATreeLabelIsTheNodeAndItsMarks [
 	"No line count: only what the node is, and whether it is reviewed or commented."
 
 	| review |
-	review := OCRReview
-		          repositoryName: 'my-project'
-		          reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
-		          changes: { (OCRMethodChange modification
-			           packageName: 'MyPackage';
-			           className: 'OCRReviewPresenterTest';
-			           selector: #a;
-			           oldSource: 'a ^ 1';
-			           newSource: 'a ^ 2';
-			           yourself) }.
+	review := self reviewWith: { (self methodChange: #a class: 'MyClass') }.
 
 	self assert: ((OCRReviewTabsPresenter on: review) labelFor: review structuralTree first) equals: 'Code'
 ]

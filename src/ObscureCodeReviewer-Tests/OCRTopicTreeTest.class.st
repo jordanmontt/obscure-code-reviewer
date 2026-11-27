@@ -3,37 +3,10 @@ I test the Topics tree of a review (OCRTopicTreeBuilder): which change goes unde
 "
 Class {
 	#name : 'OCRTopicTreeTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
-
-{ #category : 'helpers' }
-OCRTopicTreeTest >> labelsOf: someNodes [
-
-	^ someNodes collect: [ :each | each label ] as: Array
-]
-
-{ #category : 'helpers' }
-OCRTopicTreeTest >> methodChange: aSelector class: aClassName [
-
-	^ OCRMethodChange modification
-		  packageName: 'MyProject';
-		  className: aClassName;
-		  selector: aSelector;
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRTopicTreeTest >> reviewWith: someChanges guide: aString [
-
-	^ (OCRReview
-		   repositoryName: 'my-project'
-		   reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
-		   changes: someChanges)
-		  guide: (OCRReviewGuide fromText: aString);
-		  yourself
-]
 
 { #category : 'tests' }
 OCRTopicTreeTest >> testAChangeInTwoTopicsStaysInTheFirst [
