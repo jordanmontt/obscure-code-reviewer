@@ -15,6 +15,23 @@ OCRReviewPresenterTest >> emptyReview [
 ]
 
 { #category : 'helpers' }
+OCRReviewPresenterTest >> enabledToolbarLabelsOf: aPresenter [
+
+	^ (aPresenter toolbar items select: [ :each | each isEnabled ]) collect: [ :each | each label ] as: Array
+]
+
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> presenterOnEditableMethod [
+	"A window whose selection is a modified method of this class, which can be marked, browsed and edited."
+
+	| presenter |
+	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
+	presenter nextReview: self reviewWithEditableMethod.
+	presenter reloadReviewWithGuide: OCRReviewGuide empty selecting: 'OCRReviewPresenterTest>>#emptyReview'.
+	^ presenter
+]
+
+{ #category : 'helpers' }
 OCRReviewPresenterTest >> reviewWithEditableMethod [
 
 	^ OCRReview
@@ -53,6 +70,14 @@ OCRReviewPresenterTest >> testANewReviewKeepsTheSelectionInTheStructureTab [
 	tabs selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
 
 	self assert: tabs isSelectingInStructure
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testASelectedMethodCanBeMarkedBrowsedAndEditedFromTheToolbar [
+
+	self
+		assert: (self enabledToolbarLabelsOf: self presenterOnEditableMethod)
+		equals: #( 'Refresh' 'Copy review' 'Reviewed' 'Browse' 'Edit' )
 ]
 
 { #category : 'tests' }
@@ -234,6 +259,17 @@ OCRReviewPresenterTest >> testTheMenuItemsHaveTheIconsOfTheirButtons [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testTheReviewedButtonUnmarksAReviewedSelection [
+
+	| presenter |
+	presenter := self presenterOnEditableMethod.
+
+	presenter toggleReviewed.
+
+	self assert: (self enabledToolbarLabelsOf: presenter) equals: #( 'Refresh' 'Copy review' 'Unmark' 'Browse' 'Edit' )
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testTheTitleHasNoWarningWhenTheBaseIsUpToDate [
 
 	self
@@ -261,10 +297,35 @@ OCRReviewPresenterTest >> testTheTitleWarnsWhenTheBaseIsStale [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testTheToolbarOffersTheActionsOfTheReview [
+
+	self
+		assert: ((OCRReviewPresenter on: self emptyReview) toolbar items collect: [ :each | each label ] as: Array)
+		equals: #( 'Refresh' 'Copy review' 'Reviewed' 'Browse' 'Edit' 'Save' 'Cancel' )
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testTheWindowRunsInTheReviewerApplication [
 
 	| presenter |
 	presenter := OCRReviewPresenter on: self emptyReview.
 
 	self assert: (presenter application isKindOf: OCRApplication)
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testWhileEditingTheToolbarSavesOrCancels [
+
+	| presenter |
+	presenter := self presenterOnEditableMethod.
+
+	presenter startEditing.
+
+	self assert: (self enabledToolbarLabelsOf: presenter) equals: #( 'Copy review' 'Save' 'Cancel' )
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testWithoutSelectionTheToolbarOnlyRefreshesAndCopies [
+
+	self assert: (self enabledToolbarLabelsOf: (OCRReviewPresenter on: self emptyReview)) equals: #( 'Refresh' 'Copy review' )
 ]
