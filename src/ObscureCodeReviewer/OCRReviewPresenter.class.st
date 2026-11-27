@@ -560,12 +560,13 @@ OCRReviewPresenter >> updateToolbar [
 { #category : 'accessing' }
 OCRReviewPresenter >> windowTitle [
 
-	| title |
+	| base title |
+	base := review reviewBase.
 	title := 'Obscure Code Reviewer - {1} - base: {2}' format: {
 		         review repositoryName.
-		         review baseLabel }.
-	review hasBaseWarning ifFalse: [ ^ title ].
+		         base label }.
+	base hasWarning ifFalse: [ ^ title ].
 	^ '{1} - WARNING: {2}' format: {
 		  title.
-		  review baseWarning }
+		  base warning }
 ]
