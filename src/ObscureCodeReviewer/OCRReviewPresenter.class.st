@@ -316,9 +316,7 @@ OCRReviewPresenter >> initializePresenters [
 OCRReviewPresenter >> initializeWindow: aWindowPresenter [
 
 	super initializeWindow: aWindowPresenter.
-	aWindowPresenter
-		title: self windowTitle;
-		initialExtent: 1100 @ 700
+	aWindowPresenter initialExtent: 1100 @ 700
 ]
 
 { #category : 'editing' }
@@ -497,7 +495,7 @@ OCRReviewPresenter >> showReview [
 
 	tabs showReview: review.
 	generalCommentText text: review generalComment.
-	self withWindowDo: [ :window | window title: self windowTitle ]
+	self updateWindowTitle
 ]
 
 { #category : 'showing' }
