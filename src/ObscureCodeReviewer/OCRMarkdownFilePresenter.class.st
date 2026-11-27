@@ -14,11 +14,7 @@ Class {
 		'renderedButton',
 		'sourceButton',
 		'diff',
-		'aloneText',
-		'aloneTitle',
-		'isAlone',
-		'baseSource',
-		'diskSource'
+		'sides'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -35,6 +31,16 @@ OCRMarkdownFilePresenter >> beRendered [
 OCRMarkdownFilePresenter >> beSource [
 
 	sourceButton state: true
+]
+
+{ #category : 'showing' }
+OCRMarkdownFilePresenter >> codePresenterOn: aString [
+
+	^ self newCode
+		  beNotEditable;
+		  withoutSyntaxHighlight;
+		  text: aString;
+		  yourself
 ]
 
 { #category : 'initialization' }
@@ -54,20 +60,12 @@ OCRMarkdownFilePresenter >> initializePresenters [
 		                yourself.
 	renderedButton associatedRadioButtons: { sourceButton }.
 	renderedButton state: true.
-
 	diff := self newDiff
 		        showOptions: false;
 		        leftLabel: 'Base';
 		        rightLabel: 'Disk';
 		        yourself.
-	aloneText := self newCode
-		             beNotEditable;
-		             withoutSyntaxHighlight;
-		             yourself.
-	aloneTitle := ''.
-	baseSource := ''.
-	diskSource := ''.
-	isAlone := false.
+	sides := #(  ).
 	self showLayout
 ]
 
@@ -98,20 +96,17 @@ OCRMarkdownFilePresenter >> renderedLayout [
 		  inject: (SpBoxLayout newLeftToRight
 			   spacing: 10;
 			   yourself)
-		  into: [ :sides :each |
-			  sides
+		  into: [ :row :each |
+			  row
 				  add: (self layoutOf: (self richTextPresenterOn: each value) titled: each key);
 				  yourself ]
 ]
 
 { #category : 'rendering' }
 OCRMarkdownFilePresenter >> renderedTexts [
-	"Title -> rich text, for each side shown. Composed here, not in a MicrodownPresenter, whose Morphic adapter composes when it builds its widget, where #renderedLayout could not catch a Microdown error."
+	"Title -> rich text, for each side. Composed here, not in a MicrodownPresenter, whose Morphic adapter composes when it builds its widget, where #renderedLayout could not catch a Microdown error."
 
-	isAlone ifTrue: [ ^ { (aloneTitle -> (Microdown asRichText: diskSource)) } ].
-	^ {
-		  ('Base' -> (Microdown asRichText: baseSource)).
-		  ('Disk' -> (Microdown asRichText: diskSource)) }
+	^ sides collect: [ :each | each key -> (Microdown asRichText: each value) ]
 ]
 
 { #category : 'showing' }
@@ -126,19 +121,16 @@ OCRMarkdownFilePresenter >> richTextPresenterOn: aText [
 OCRMarkdownFilePresenter >> show: aSource aloneTitled: aTitle [
 	"An added or removed file has one side only, so it is shown alone, as an added or removed method is."
 
-	isAlone := true.
-	aloneTitle := aTitle.
-	diskSource := aSource.
-	aloneText text: aSource.
+	sides := { (aTitle -> aSource) }.
 	self showLayout
 ]
 
 { #category : 'showing' }
 OCRMarkdownFilePresenter >> showFrom: anOldSource to: aNewSource [
 
-	isAlone := false.
-	baseSource := anOldSource.
-	diskSource := aNewSource.
+	sides := {
+		         ('Base' -> anOldSource).
+		         ('Disk' -> aNewSource) }.
 	diff
 		leftText: '';
 		rightText: ''.
@@ -168,10 +160,10 @@ OCRMarkdownFilePresenter >> showLayout [
 
 { #category : 'showing' }
 OCRMarkdownFilePresenter >> sourceLayout [
+	"Two sides are compared in the diff; one side is shown alone."
 
-	^ isAlone
-		  ifTrue: [ self layoutOf: aloneText titled: aloneTitle ]
-		  ifFalse: [ diff ]
+	sides size = 1 ifFalse: [ ^ diff ].
+	^ self layoutOf: (self codePresenterOn: sides first value) titled: sides first key
 ]
 
 { #category : 'showing' }
