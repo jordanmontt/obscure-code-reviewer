@@ -62,3 +62,10 @@ OCRSplitBase >> setBranchName: aString [
 
 	branchName := aString
 ]
+
+{ #category : 'reading' }
+OCRSplitBase >> warningIn: aRepository by: aReader [
+	"Why I may be the wrong base, or an empty string: a local branch behind its upstream misses what the upstream merged."
+
+	^ aReader warningIfBranchNamed: branchName isBehindIn: aRepository
+]

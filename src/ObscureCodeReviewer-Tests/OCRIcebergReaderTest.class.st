@@ -31,24 +31,31 @@ OCRIcebergReaderTest >> fileSystemWith: someFiles [
 ]
 
 { #category : 'tests' }
-OCRIcebergReaderTest >> testFileChangesIncludeAFileOfAGitCommitIcebergDoesNotKnow [
-	"After a commit made with git itself, Iceberg's reference commit is behind HEAD. A nested file added by that commit is still in the diff: an addition since the base."
+OCRIcebergReaderTest >> testFileChangesAreTheChangedFilesOutsideTheCode [
+	"Git names the paths; a file of a loaded package is reviewed as code, and a file back to its old bytes is not a change."
 
 	| base repository changes |
-	base := self commitWith: { ('docs/progress.md' -> 'old') } asDictionary.
+	base := self commitWith: {
+		        ('docs/progress.md' -> 'old').
+		        ('README.md' -> 'same').
+		        ('OLD.md' -> 'gone').
+		        ('src/MyPackage/A.class.st' -> 'old code') } asDictionary.
 	repository := OCRRepositoryStub new
-		              referenceCommit: base;
-		              headCommit: (self commitWith: {
-			               ('docs/progress.md' -> 'old').
-			               ('docs/features/sheets/SEL.md' -> 'committed') } asDictionary);
+		              loadedPackageNames: #( 'MyPackage' );
 		              location: (self fileSystemWith: {
 			               ('docs/progress.md' -> 'new').
-			               ('docs/features/sheets/SEL.md' -> 'modified') } asDictionary);
+			               ('README.md' -> 'same').
+			               ('docs/SEL.md' -> 'added').
+			               ('src/MyPackage/A.class.st' -> 'new code') } asDictionary);
 		              yourself.
 
-	changes := OCRIcebergReader new fileChangesIn: repository since: base.
+	changes := OCRIcebergReader new
+		           fileChanges: #( 'README.md' 'docs/progress.md' 'docs/SEL.md' 'OLD.md' 'src/MyPackage/A.class.st' )
+		           in: repository
+		           since: base.
 
 	self assert: (changes collect: [ :each | each reference -> each kind ] as: Array) equals: {
-		('docs/features/sheets/SEL.md' -> #addition).
+		('OLD.md' -> #removal).
+		('docs/SEL.md' -> #addition).
 		('docs/progress.md' -> #modification) }
 ]

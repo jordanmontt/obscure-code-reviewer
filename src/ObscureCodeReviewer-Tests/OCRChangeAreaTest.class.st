@@ -12,6 +12,16 @@ Class {
 }
 
 { #category : 'helpers' }
+OCRChangeAreaTest >> markdownFile: aKind from: anOldSource to: aNewSource [
+
+	^ OCRFileChange
+		  kind: aKind
+		  path: 'NOTES.md'
+		  oldBytes: anOldSource utf8Encoded
+		  newBytes: aNewSource utf8Encoded
+]
+
+{ #category : 'helpers' }
 OCRChangeAreaTest >> method: aChange [
 
 	^ aChange
@@ -25,6 +35,35 @@ OCRChangeAreaTest >> setUp [
 
 	super setUp.
 	area := OCRChangeAreaPresenter new
+]
+
+{ #category : 'helpers' }
+OCRChangeAreaTest >> shownMarkdownTitles [
+
+	^ self titlesShownBy: area markdownPresenter
+]
+
+{ #category : 'tests' }
+OCRChangeAreaTest >> testAMarkdownFileIsRenderedByDefault [
+
+	area showChange: (self markdownFile: #modification from: '# Notes' to: '# Notes!') comparedWith: '# Notes' notes: ''.
+
+	self deny: area markdownPresenter isShowingDiff.
+	self assert: self shownMarkdownTitles equals: #( 'Base' 'Disk' )
+]
+
+{ #category : 'tests' }
+OCRChangeAreaTest >> testAMarkdownFileMicrodownCannotRenderShowsItsSourceAndWhy [
+
+	| presenter |
+	presenter := OCRMarkdownFilePresenterStub new.
+
+	presenter showFrom: '# Notes' to: '# Notes!'.
+
+	self assert: presenter isShowingDiff.
+	self
+		assert: (self titlesShownBy: presenter)
+		equals: #( 'Could not render with Microdown (Error: Cannot render): showing the source.' )
 ]
 
 { #category : 'tests' }
@@ -57,6 +96,24 @@ OCRChangeAreaTest >> testAMethodStartingWithACommentKeepsIt [
 ]
 
 { #category : 'tests' }
+OCRChangeAreaTest >> testAModifiedMarkdownFileIsRenderedSideBySide [
+
+	area showChange: (self markdownFile: #modification from: '# Notes' to: '# Notes!') comparedWith: '# Notes' notes: ''.
+	area markdownPresenter beRendered.
+
+	self assert: self shownMarkdownTitles equals: #( 'Base' 'Disk' )
+]
+
+{ #category : 'tests' }
+OCRChangeAreaTest >> testAModifiedMarkdownFileShowsItsDiff [
+
+	area showChange: (self markdownFile: #modification from: '# Notes' to: '# Notes!') comparedWith: '# Notes' notes: ''.
+	area markdownPresenter beSource.
+
+	self assert: area markdownPresenter isShowingDiff
+]
+
+{ #category : 'tests' }
 OCRChangeAreaTest >> testAModifiedMethodKeepsItsProtocolLineInTheDiff [
 
 	area
@@ -85,6 +142,16 @@ OCRChangeAreaTest >> testAModifiedMethodShowsItsDiff [
 ]
 
 { #category : 'tests' }
+OCRChangeAreaTest >> testARemovedMarkdownFileIsShownAlone [
+
+	area showChange: (self markdownFile: #removal from: '# Notes' to: '') comparedWith: '# Notes' notes: ''.
+	area markdownPresenter beSource.
+
+	self deny: area markdownPresenter isShowingDiff.
+	self assert: self shownMarkdownTitles equals: #( 'Removed' )
+]
+
+{ #category : 'tests' }
 OCRChangeAreaTest >> testARemovedMethodIsShownAlone [
 
 	area
@@ -96,6 +163,40 @@ OCRChangeAreaTest >> testARemovedMethodIsShownAlone [
 
 	self deny: area isShowingDiff.
 	self assert: area shownSource equals: 'foo ^ 1'
+]
+
+{ #category : 'tests' }
+OCRChangeAreaTest >> testAnAddedMarkdownFileIsRenderedAlone [
+
+	area showChange: (self markdownFile: #addition from: '' to: '# Notes') comparedWith: '' notes: ''.
+	area markdownPresenter beRendered.
+
+	self assert: self shownMarkdownTitles equals: #( 'Added' )
+]
+
+{ #category : 'tests' }
+OCRChangeAreaTest >> testAnAddedMarkdownFileIsShownAlone [
+
+	area showChange: (self markdownFile: #addition from: '' to: '# Notes') comparedWith: '' notes: ''.
+	area markdownPresenter beSource.
+
+	self deny: area markdownPresenter isShowingDiff.
+	self assert: self shownMarkdownTitles equals: #( 'Added' )
+]
+
+{ #category : 'tests' }
+OCRChangeAreaTest >> testAnAddedMarkdownFileMicrodownCannotRenderShowsItsSourceAndWhy [
+
+	| presenter |
+	presenter := OCRMarkdownFilePresenterStub new.
+
+	presenter show: '# Notes' aloneTitled: 'Added'.
+
+	self deny: presenter isShowingDiff.
+	self
+		assert: (self titlesShownBy: presenter)
+		equals: #( 'Could not render with Microdown (Error: Cannot render): showing the source.'
+			   'Added' )
 ]
 
 { #category : 'tests' }
@@ -154,4 +255,13 @@ OCRChangeAreaTest >> testTheProtocolOfAnAddedMethodIsInTheTitle [
 
 	self assert: area shownSource equals: 'foo ^ 2'.
 	self assert: area shownSourceTitle equals: 'Added — protocol: accessing'
+]
+
+{ #category : 'helpers' }
+OCRChangeAreaTest >> titlesShownBy: aMarkdownFilePresenter [
+	"The titles above what aMarkdownFilePresenter shows: none for the diff, which labels its own sides."
+
+	^ (aMarkdownFilePresenter layout allPresenters select: [ :each | each class = SpLabelPresenter ])
+		  collect: [ :each | each label ]
+		  as: Array
 ]

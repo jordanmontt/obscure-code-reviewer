@@ -59,31 +59,19 @@ OCRIcebergReader class >> reviewableRepositoryNames [
 ]
 
 { #category : 'files' }
-OCRIcebergReader >> addFilePathsIn: aRoot of: aRepository to: aSet [
-	"The paths of the files under aRoot, relative to it, skipping the directories of the loaded packages: Iceberg's diff reviews them as code."
+OCRIcebergReader >> addFileChangeAt: aPath in: aRepository since: aCommit to: someChanges [
 
-	self
-		addFilePathsIn: aRoot
-		under: aRoot
-		skipping: (self codeDirectoriesOf: aRepository)
-		to: aSet
-]
-
-{ #category : 'files' }
-OCRIcebergReader >> addFilePathsIn: aDirectory under: aRoot skipping: someDirectoryPaths to: aSet [
-
-	aDirectory children do: [ :each |
-		| path |
-		path := (each relativeTo: aRoot) pathString.
-		each isDirectory
-			ifTrue: [
-				(someDirectoryPaths includes: path) ifFalse: [
-					self
-						addFilePathsIn: each
-						under: aRoot
-						skipping: someDirectoryPaths
-						to: aSet ] ]
-			ifFalse: [ aSet add: path ] ]
+	| old new oldBytes newBytes |
+	old := aCommit fileSystem resolve: aPath.
+	new := aRepository location resolve: aPath.
+	oldBytes := self bytesOf: old.
+	newBytes := self bytesOf: new.
+	(old exists = new exists and: [ oldBytes = newBytes ]) ifTrue: [ ^ self ].
+	someChanges add: (OCRFileChange
+		 kind: (self fileChangeKindFrom: old to: new)
+		 path: aPath
+		 oldBytes: oldBytes
+		 newBytes: newBytes)
 ]
 
 { #category : 'bases' }
@@ -120,6 +108,26 @@ OCRIcebergReader >> changeFrom: aNode [
 	^ change
 ]
 
+{ #category : 'files' }
+OCRIcebergReader >> changedFilePathsIn: aRepository since: aCommit [
+	"The paths git sees changed since aCommit: committed since then (aCommit -> HEAD), staged (HEAD -> index) and not staged (index -> disk).
+	HEAD, not Iceberg's reference commit, which lags behind it after a commit made outside Iceberg. A file git does not track is not listed: a new file shows up once it is added or committed."
+
+	| handle head paths |
+	paths := Set new.
+	aRepository handleLibgitError: [
+		handle := aRepository repositoryHandle.
+		head := aRepository headCommit libgitCommit tree.
+		paths addAll: (aCommit libgitCommit tree diffTo: head) files.
+		paths addAll: ((LGitDiff of: handle)
+			 diffTree: head toIndex: handle index;
+			 yourself) files.
+		paths addAll: ((LGitDiff of: handle)
+			 diffIndexToWorkDir;
+			 yourself) files ].
+	^ paths
+]
+
 { #category : 'reading' }
 OCRIcebergReader >> changesIn: anIceDiff [
 
@@ -149,11 +157,9 @@ OCRIcebergReader >> classSideVariablesOf: anOperation [
 
 { #category : 'files' }
 OCRIcebergReader >> codeDirectoriesOf: aRepository [
-	"'.git', and the directory of each loaded package, e.g. 'src/MyPackage'."
+	"The directory of each loaded package, ending with a slash, e.g. 'src/MyPackage/'."
 
-	^ (aRepository loadedPackages collect: [ :each | (aRepository subdirectoryPath / each name) pathString ] as: Set)
-		  add: '.git';
-		  yourself
+	^ aRepository loadedPackages collect: [ :each | (aRepository subdirectoryPath / each name) pathString , '/' ] as: Set
 ]
 
 { #category : 'bases' }
@@ -169,19 +175,6 @@ OCRIcebergReader >> defaultBaseOf: aRepository [
 ]
 
 { #category : 'files' }
-OCRIcebergReader >> fileChangeAt: aPath in: aRepository since: aCommit [
-
-	| old new |
-	old := aCommit fileSystem resolve: aPath.
-	new := aRepository location resolve: aPath.
-	^ OCRFileChange
-		  kind: (self fileChangeKindFrom: old to: new)
-		  path: aPath
-		  oldBytes: (self bytesOf: old)
-		  newBytes: (self bytesOf: new)
-]
-
-{ #category : 'files' }
 OCRIcebergReader >> fileChangeKindFrom: anOldFile to: aNewFile [
 
 	anOldFile exists ifFalse: [ ^ #addition ].
@@ -190,17 +183,27 @@ OCRIcebergReader >> fileChangeKindFrom: anOldFile to: aNewFile [
 ]
 
 { #category : 'files' }
-OCRIcebergReader >> fileChangesIn: aRepository since: aCommit [
-	"The files outside the loaded packages that differ between aCommit and the disk.
-	Only the files of aCommit or of git's HEAD are compared: a new file shows up once it is committed. HEAD, not Iceberg's reference commit, which lags behind it after a commit made outside Iceberg."
+OCRIcebergReader >> fileChanges: somePaths in: aRepository since: aCommit [
+	"A change for each of somePaths outside the loaded packages (Iceberg's diff reviews those as code) whose bytes differ between aCommit and the disk: a path git names can be back to its old bytes, e.g. a change committed then undone on disk."
 
-	| paths |
-	paths := Set new.
-	self addFilePathsIn: aCommit fileSystem of: aRepository to: paths.
-	self addFilePathsIn: aRepository headCommit fileSystem of: aRepository to: paths.
-	^ paths sorted
-		  select: [ :each | self isFileAt: each changedIn: aRepository since: aCommit ]
-		  thenCollect: [ :each | self fileChangeAt: each in: aRepository since: aCommit ]
+	| codeDirectories changes |
+	codeDirectories := self codeDirectoriesOf: aRepository.
+	changes := OrderedCollection new.
+	somePaths sorted do: [ :path |
+		(codeDirectories anySatisfy: [ :each | path beginsWith: each ]) ifFalse: [
+			self
+				addFileChangeAt: path
+				in: aRepository
+				since: aCommit
+				to: changes ] ].
+	^ changes
+]
+
+{ #category : 'files' }
+OCRIcebergReader >> fileChangesIn: aRepository since: aCommit [
+	"The files outside the loaded packages that differ between aCommit and the disk. Git says which paths changed (see #changedFilePathsIn:since:)."
+
+	^ self fileChanges: (self changedFilePathsIn: aRepository since: aCommit) in: aRepository since: aCommit
 ]
 
 { #category : 'reading' }
@@ -217,16 +220,6 @@ OCRIcebergReader >> isEmptyClassSideDefinition: aNode [
 OCRIcebergReader >> isExtension: aNode [
 
 	^ aNode definition isMethodDefinition and: [ aNode parent definition isExtensionDefinition ]
-]
-
-{ #category : 'files' }
-OCRIcebergReader >> isFileAt: aPath changedIn: aRepository since: aCommit [
-
-	| old new |
-	old := aCommit fileSystem resolve: aPath.
-	new := aRepository location resolve: aPath.
-	old exists = new exists ifFalse: [ ^ true ].
-	^ (self bytesOf: old) ~= (self bytesOf: new)
 ]
 
 { #category : 'reading' }
@@ -296,10 +289,7 @@ OCRIcebergReader >> reviewOf: aRepository against: aBase [
 	baseCommit := aBase commitIn: aRepository by: self.
 	^ OCRReview
 		  repositoryName: aRepository name
-		  base: aBase
-		  baseLabel: ('{1} ({2})' format: {
-			   baseCommit shortId.
-			   aBase description })
+		  reviewBase: (OCRReviewBase base: aBase commitId: baseCommit shortId warning: (aBase warningIn: aRepository by: self))
 		  changes:
 		  (self changesIn: (IceDiff from: aRepository workingCopy to: baseCommit)) , (self fileChangesIn: aRepository since: baseCommit)
 ]
@@ -332,4 +322,20 @@ OCRIcebergReader >> upstreamNamesOf: aRepository [
 	names := Dictionary new.
 	aRepository localBranches do: [ :each | each hasUpstream ifTrue: [ names at: each name put: each upstream name ] ].
 	^ names
+]
+
+{ #category : 'bases' }
+OCRIcebergReader >> warningIfBranchNamed: aBranchName isBehindIn: aRepository [
+	"When the local branch aBranchName lacks commits of its upstream, a split from it shows what the upstream already merged: say so, naming both commits. Empty for a remote branch, a branch without upstream, or one that is up to date."
+
+	| branch upstream |
+	branch := aRepository branchNamed: aBranchName ifAbsent: [ ^ '' ].
+	branch hasUpstream ifFalse: [ ^ '' ].
+	upstream := branch upstream.
+	(branch commit commonAncestorWith: upstream commit) = upstream commit ifTrue: [ ^ '' ].
+	^ '{1} ({2}) is behind {3} ({4})' format: {
+		  aBranchName.
+		  branch commit shortId.
+		  upstream name.
+		  upstream commit shortId }
 ]

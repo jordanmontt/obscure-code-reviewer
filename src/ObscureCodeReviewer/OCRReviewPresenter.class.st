@@ -1,6 +1,6 @@
 "
 I am the review window:
-- a toolbar (OCRReviewToolbar);
+- a toolbar, filled from the same actions as the shortcuts and the right-click menu of the trees (see #initializeActions);
 - on the left, the Structure, Topics, Guide and Pull request tabs (OCRReviewTabsPresenter);
 - on the right, the selected change (OCRChangeAreaPresenter): its diff, a binary file, a topic's explanation, or the code editor while editing; below it, the comment on the selected change or topic;
 - a general comment at the bottom.
@@ -18,7 +18,8 @@ Class {
 		'tabs',
 		'changeArea',
 		'commentText',
-		'generalCommentText'
+		'generalCommentText',
+		'toolbarActions'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -48,10 +49,31 @@ OCRReviewPresenter class >> onRepositoryNamed: aString guide: aGuide [
 ]
 
 { #category : 'actions' }
+OCRReviewPresenter >> actionGroupOf: someActions [
+
+	^ someActions inject: SpActionGroup new into: [ :group :each |
+		  group add: each.
+		  group ]
+]
+
+{ #category : 'actions' }
 OCRReviewPresenter >> applyGuide: aString [
 	"Show the review with this guide. Refresh keeps it; nothing else does: it lives as long as the window."
 
 	self refreshWithGuide: (OCRReviewGuide fromText: aString)
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> browseAction [
+
+	^ SpAction new
+		  name: 'Browse';
+		  iconName: #glamorousBrowse;
+		  description: 'Open the System Browser on the selected method or class (Cmd+B)';
+		  shortcutKey: $b actionModifier;
+		  actionEnabled: [ self isEditing not and: [ self canBrowseSelection ] ];
+		  action: [ self browseSelection ];
+		  yourself
 ]
 
 { #category : 'actions' }
@@ -88,7 +110,6 @@ OCRReviewPresenter >> canBrowseMessagesOfSelection [
 { #category : 'testing' }
 OCRReviewPresenter >> canBrowseSelection [
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode canBrowse
 ]
 
@@ -101,8 +122,20 @@ OCRReviewPresenter >> canEditSelection [
 { #category : 'selection' }
 OCRReviewPresenter >> canMarkSelection [
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode changesBelow isNotEmpty
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> cancelAction [
+
+	^ SpAction new
+		  name: 'Cancel';
+		  iconName: #smallCancel;
+		  description: 'Stop editing without saving (Esc)';
+		  shortcutKey: Character escape asKeyCombination;
+		  actionEnabled: [ self isEditing ];
+		  action: [ self stopEditing ];
+		  yourself
 ]
 
 { #category : 'layout' }
@@ -138,13 +171,24 @@ OCRReviewPresenter >> connectPresenters [
 	changeArea whenSaveRequestedDo: [ self saveEdit ].
 	commentText whenTextChangedDo: [ :text | self commentChanged: text asString ].
 	generalCommentText whenTextChangedDo: [ :text | review generalComment: text asString ].
-	toolbar updateButtons
+	self updateToolbar
 ]
 
 { #category : 'actions' }
 OCRReviewPresenter >> copyReview [
 
 	Clipboard clipboardText: review feedback informing: 'Review copied to the clipboard'
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> copyReviewAction [
+
+	^ SpAction new
+		  name: 'Copy review';
+		  iconName: #smallCopy;
+		  description: 'Copy all comments as Markdown, ready to paste to the agent';
+		  action: [ self copyReview ];
+		  yourself
 ]
 
 { #category : 'layout' }
@@ -169,6 +213,19 @@ OCRReviewPresenter >> disableComment [
 		text: ''
 ]
 
+{ #category : 'actions' }
+OCRReviewPresenter >> editAction [
+
+	^ SpAction new
+		  name: 'Edit';
+		  iconName: #edit;
+		  description: 'Edit the selected method by hand (Cmd+E)';
+		  shortcutKey: $e actionModifier;
+		  actionEnabled: [ self isEditing not and: [ self canEditSelection ] ];
+		  action: [ self startEditing ];
+		  yourself
+]
+
 { #category : 'showing' }
 OCRReviewPresenter >> enableCommentOn: anItem [
 
@@ -182,84 +239,67 @@ OCRReviewPresenter >> enableReviewing: aBoolean [
 	"While editing, only Save and Cancel are possible."
 
 	tabs enableSelecting: aBoolean.
-	toolbar updateButtons
+	self updateToolbar
 ]
 
 { #category : 'selection' }
 OCRReviewPresenter >> hasSelectedChange [
 	"Nothing selected, or a section, package, topic or unchanged class selected, means no change to show."
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode hasChange
 ]
 
 { #category : 'selection' }
 OCRReviewPresenter >> hasSelectedCommentable [
 
-	tabs isSelectionEmpty ifTrue: [ ^ false ].
 	^ tabs selectedNode isCommentable
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> implementorsAction [
+
+	^ SpAction new
+		  name: 'Implementors';
+		  iconName: #smallFind;
+		  description: 'Browse the implementors of the selected method (Cmd+M)';
+		  shortcutKey: $m actionModifier;
+		  actionEnabled: [ self isEditing not and: [ self canBrowseMessagesOfSelection ] ];
+		  action: [ self browseImplementorsOfSelection ];
+		  yourself
 ]
 
 { #category : 'initialization' }
 OCRReviewPresenter >> initializeActions [
-	"The actions of the review: shortcuts of the whole window, and the right-click menu of the trees, where each shows its key and its button's icon.
-	Each does what its toolbar button does, when the button is enabled (see OCRReviewToolbar>>#updateButtons).
+	"Each action is written once, in its own method. The toolbar and the window (its shortcuts, and the right-click menu of the trees) each get their own instances: Spec keeps the button it builds in its action.
 	A text pane answers its own keys first: there Cmd+B, Cmd+M and Cmd+N are Code search on the selected word."
 
-	| actions |
-	actions := SpActionGroup new.
-	actions addActionWith: [ :action |
-		action
-			dynamicName: [
-				self isSelectionReviewed
-					ifTrue: [ 'Unmark' ]
-					ifFalse: [ 'Reviewed' ] ];
-			iconName: #smallOk;
-			shortcutKey: $r actionModifier;
-			actionEnabled: [ self isEditing not and: [ self canMarkSelection ] ];
-			action: [ self toggleReviewed ] ].
-	actions addActionWith: [ :action |
-		action
-			name: 'Browse';
-			iconName: #glamorousBrowse;
-			shortcutKey: $b actionModifier;
-			actionEnabled: [ self isEditing not and: [ self canBrowseSelection ] ];
-			action: [ self browseSelection ] ].
-	actions addActionWith: [ :action |
-		action
-			name: 'Edit';
-			iconName: #edit;
-			shortcutKey: $e actionModifier;
-			actionEnabled: [ self isEditing not and: [ self canEditSelection ] ];
-			action: [ self startEditing ] ].
-	actions addActionWith: [ :action |
-		action
-			name: 'Implementors';
-			iconName: #smallFind;
-			shortcutKey: $m actionModifier;
-			actionEnabled: [ self isEditing not and: [ self canBrowseMessagesOfSelection ] ];
-			action: [ self browseImplementorsOfSelection ] ].
-	actions addActionWith: [ :action |
-		action
-			name: 'Senders';
-			iconName: #smallFind;
-			shortcutKey: $n actionModifier;
-			actionEnabled: [ self isEditing not and: [ self canBrowseMessagesOfSelection ] ];
-			action: [ self browseSendersOfSelection ] ].
-	actions addShortcutWith: [ :action |
-		action
-			name: 'Cancel';
-			shortcutKey: Character escape asKeyCombination;
-			actionEnabled: [ self isEditing ];
-			action: [ self stopEditing ] ].
-	self actions: actions.
-	tabs treeActions: actions
+	self actions: (self actionGroupOf: {
+		 self reviewedAction.
+		 self browseAction.
+		 self editAction.
+		 self implementorsAction.
+		 self sendersAction.
+		 (self cancelAction
+			  beShortcutOnly;
+			  yourself) }).
+	tabs treeActions: self actions.
+	toolbarActions := self actionGroupOf: {
+		                  self refreshAction.
+		                  self copyReviewAction.
+		                  self reviewedAction.
+		                  self browseAction.
+		                  self editAction.
+		                  self saveAction.
+		                  self cancelAction }.
+	toolbar := self newToolbar
+		           addStyle: 'stToolbar';
+		           fillWith: toolbarActions;
+		           yourself
 ]
 
 { #category : 'initialization' }
 OCRReviewPresenter >> initializePresenters [
 
-	toolbar := self instantiate: OCRReviewToolbar on: self.
 	tabs := self instantiate: OCRReviewTabsPresenter on: review.
 	changeArea := self instantiate: OCRChangeAreaPresenter.
 	commentText := self newCommentPane
@@ -326,38 +366,67 @@ OCRReviewPresenter >> recomputedReview [
 
 { #category : 'actions' }
 OCRReviewPresenter >> refresh [
-	"Recompute the changes from the image, with the same guide. The comments are kept (see OCRReview>>#takeCommentsFrom:),
-	and so is the selected change or topic when it is still there."
+	"Recompute the changes from the image, with the same guide (see #refreshWithGuide:)."
 
 	self refreshWithGuide: review guide
 ]
 
 { #category : 'actions' }
-OCRReviewPresenter >> refreshWithGuide: aGuide [
-	"Recompute the changes from the image and show them with aGuide. The comments are kept (see OCRReview>>#takeCommentsFrom:),
-	and so is the selected change or topic when it is still there."
+OCRReviewPresenter >> refreshAction [
 
-	self hasSelectedCommentable ifFalse: [ ^ self reloadReviewWithGuide: aGuide ].
-	self reloadReviewWithGuide: aGuide selecting: self selectedCommentable reference
+	^ SpAction new
+		  name: 'Refresh';
+		  iconName: #glamorousRefresh;
+		  description: 'Recompute the changes from the image, keeping the guide, comments and marks';
+		  actionEnabled: [ self isEditing not ];
+		  action: [ self refresh ];
+		  yourself
 ]
 
 { #category : 'actions' }
-OCRReviewPresenter >> reloadReviewWithGuide: aGuide [
-	"Recompute the review against the same base, with aGuide, keeping what the reviewer did."
+OCRReviewPresenter >> refreshWithGuide: aGuide [
+	"Recompute the changes from the image against the same base, and show them with aGuide. What the reviewer did is kept (see OCRReview>>#continueFrom:), and so is the selected change or topic when it is still there."
 
-	| newReview |
+	| selected newReview |
+	selected := tabs selectedNode.
 	newReview := self recomputedReview.
 	newReview guide: aGuide.
 	newReview continueFrom: review.
 	review := newReview.
-	self showReview
+	self showReview.
+	selected isCommentable ifTrue: [ self selectItemReferenced: selected commentable reference ]
 ]
 
 { #category : 'actions' }
-OCRReviewPresenter >> reloadReviewWithGuide: aGuide selecting: aReference [
+OCRReviewPresenter >> reviewedAction [
+	"When everything selected is already reviewed, it unmarks it."
 
-	self reloadReviewWithGuide: aGuide.
-	tabs selectItemReferenced: aReference
+	^ SpAction new
+		  name: 'Reviewed';
+		  dynamicName: [
+			  self isSelectionReviewed
+				  ifTrue: [ 'Unmark' ]
+				  ifFalse: [ 'Reviewed' ] ];
+		  iconName: #smallOk;
+		  description:
+			  'Mark the selected change, or everything under the selected node, as reviewed. When it already is, unmark it (Cmd+R)';
+		  shortcutKey: $r actionModifier;
+		  actionEnabled: [ self isEditing not and: [ self canMarkSelection ] ];
+		  action: [ self toggleReviewed ];
+		  yourself
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> saveAction [
+	"Cmd+S in the editor saves too (see #connectPresenters)."
+
+	^ SpAction new
+		  name: 'Save';
+		  iconName: #smallSave;
+		  description: 'Compile the edited method and refresh the review (Cmd+S)';
+		  actionEnabled: [ self isEditing ];
+		  action: [ self saveEdit ];
+		  yourself
 ]
 
 { #category : 'editing' }
@@ -367,6 +436,13 @@ OCRReviewPresenter >> saveEdit [
 	(changeArea compileEditOf: self selectedChange) ifFalse: [ ^ self ].
 	self stopEditing.
 	self refresh
+]
+
+{ #category : 'selection' }
+OCRReviewPresenter >> selectItemReferenced: aReference [
+	"Select the change or topic written aReference, e.g. 'MyClass>>#myMethod', when it is in the tree shown."
+
+	tabs selectItemReferenced: aReference
 ]
 
 { #category : 'selection' }
@@ -381,6 +457,19 @@ OCRReviewPresenter >> selectedCommentable [
 	"A change or a topic. Only valid when #hasSelectedCommentable is true."
 
 	^ tabs selectedNode commentable
+]
+
+{ #category : 'actions' }
+OCRReviewPresenter >> sendersAction [
+
+	^ SpAction new
+		  name: 'Senders';
+		  iconName: #smallFind;
+		  description: 'Browse the senders of the selected method (Cmd+N)';
+		  shortcutKey: $n actionModifier;
+		  actionEnabled: [ self isEditing not and: [ self canBrowseMessagesOfSelection ] ];
+		  action: [ self browseSendersOfSelection ];
+		  yourself
 ]
 
 { #category : 'accessing - model' }
@@ -414,8 +503,7 @@ OCRReviewPresenter >> showReview [
 { #category : 'showing' }
 OCRReviewPresenter >> showSelection [
 
-	toolbar updateButtons.
-	tabs isSelectionEmpty ifTrue: [ ^ self showNothing ].
+	self updateToolbar.
 	tabs selectedNode showIn: self
 ]
 
@@ -451,13 +539,33 @@ OCRReviewPresenter >> toggleReviewed [
 		ifTrue: [ changes do: [ :each | review unmarkReviewed: each ] ]
 		ifFalse: [ changes do: [ :each | review markReviewed: each ] ].
 	tabs refreshTrees.
-	toolbar updateButtons
+	self updateToolbar
+]
+
+{ #category : 'testing' }
+OCRReviewPresenter >> toolbar [
+
+	^ toolbar
+]
+
+{ #category : 'showing' }
+OCRReviewPresenter >> updateToolbar [
+	"The buttons follow the selection and the editing. Spec updates whether a button is enabled, not its label: a dynamic one (Reviewed or Unmark) is read again here."
+
+	toolbarActions allCommands do: [ :each |
+		each updateEnableStatus.
+		each presenter label: each dynamicName ]
 ]
 
 { #category : 'accessing' }
 OCRReviewPresenter >> windowTitle [
 
-	^ 'Obscure Code Reviewer - {1} - base: {2}' format: {
-		  review repositoryName.
-		  review baseLabel }
+	| title |
+	title := 'Obscure Code Reviewer - {1} - base: {2}' format: {
+		         review repositoryName.
+		         review baseLabel }.
+	review hasBaseWarning ifFalse: [ ^ title ].
+	^ '{1} - WARNING: {2}' format: {
+		  title.
+		  review baseWarning }
 ]

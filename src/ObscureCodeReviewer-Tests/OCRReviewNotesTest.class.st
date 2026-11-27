@@ -3,50 +3,10 @@ I test what the guide says about a single change: why it was made and where its 
 "
 Class {
 	#name : 'OCRReviewNotesTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
-
-{ #category : 'helpers' }
-OCRReviewNotesTest >> fileChange: aPath [
-
-	^ OCRFileChange modification
-		  path: aPath;
-		  oldSource: 'old';
-		  newSource: 'new';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRReviewNotesTest >> methodChange: aSelector class: aClassName [
-
-	^ OCRMethodChange modification
-		  packageName: 'MyProject';
-		  className: aClassName;
-		  selector: aSelector;
-		  oldSource: aSelector , ' ^ 1';
-		  newSource: aSelector , ' ^ 2';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRReviewNotesTest >> reviewWith: someChanges [
-
-	^ self reviewWith: someChanges guide: ''
-]
-
-{ #category : 'helpers' }
-OCRReviewNotesTest >> reviewWith: someChanges guide: aString [
-
-	^ (OCRReview
-		   repositoryName: 'my-project'
-		   base: OCRLastCommitBase new
-		   baseLabel: 'abc1234 (last commit)'
-		   changes: someChanges)
-		  guide: (OCRReviewGuide fromText: aString);
-		  yourself
-]
 
 { #category : 'tests' }
 OCRReviewNotesTest >> testAChangeNotMovedIsComparedWithItsOwnOldCode [

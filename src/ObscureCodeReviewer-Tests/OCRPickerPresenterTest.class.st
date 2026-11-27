@@ -3,7 +3,7 @@ I test OCRPickerPresenter without opening it: it runs in the reviewer's applicat
 "
 Class {
 	#name : 'OCRPickerPresenterTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
@@ -13,11 +13,7 @@ OCRPickerPresenterTest >> testTheReviewRunsInThePickerApplication [
 
 	| picker presenter |
 	picker := OCRPickerPresenter new.
-	presenter := picker presenterOnReview: (OCRReview
-		              repositoryName: 'my-project'
-		              base: OCRLastCommitBase new
-		              baseLabel: 'abc1234 (last commit)'
-		              changes: #(  )).
+	presenter := picker presenterOnReview: (self reviewWith: #(  )).
 
 	self assert: (picker application isKindOf: OCRApplication).
 	self assert: presenter application identicalTo: picker application

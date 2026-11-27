@@ -3,50 +3,10 @@ I test the pull request description: the agent draft from the guide, the reviewe
 "
 Class {
 	#name : 'OCRPullRequestTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
-
-{ #category : 'helpers' }
-OCRPullRequestTest >> fileChange: aPath [
-
-	^ OCRFileChange modification
-		  path: aPath;
-		  oldSource: 'old';
-		  newSource: 'new';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRPullRequestTest >> methodChange: aSelector class: aClassName [
-
-	^ OCRMethodChange modification
-		  packageName: 'MyProject';
-		  className: aClassName;
-		  selector: aSelector;
-		  oldSource: aSelector , ' ^ 1';
-		  newSource: aSelector , ' ^ 2';
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRPullRequestTest >> reviewWith: someChanges [
-
-	^ self reviewWith: someChanges guide: ''
-]
-
-{ #category : 'helpers' }
-OCRPullRequestTest >> reviewWith: someChanges guide: aString [
-
-	^ (OCRReview
-		   repositoryName: 'my-project'
-		   base: OCRLastCommitBase new
-		   baseLabel: 'abc1234 (last commit)'
-		   changes: someChanges)
-		  guide: (OCRReviewGuide fromText: aString);
-		  yourself
-]
 
 { #category : 'tests' }
 OCRPullRequestTest >> testEditedPullRequestIsCopied [

@@ -3,32 +3,10 @@ I test comments on topics: in the copied review and across a refresh.
 "
 Class {
 	#name : 'OCRReviewTopicsTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
-
-{ #category : 'helpers' }
-OCRReviewTopicsTest >> methodChange: aSelector class: aClassName [
-
-	^ OCRMethodChange modification
-		  packageName: 'MyProject';
-		  className: aClassName;
-		  selector: aSelector;
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRReviewTopicsTest >> reviewWith: someChanges guide: aString [
-
-	^ (OCRReview
-		   repositoryName: 'my-project'
-		   base: OCRLastCommitBase new
-		   baseLabel: 'abc1234 (last commit)'
-		   changes: someChanges)
-		  guide: (OCRReviewGuide fromText: aString);
-		  yourself
-]
 
 { #category : 'tests' }
 OCRReviewTopicsTest >> testRefreshKeepsCommentsOnTopicsStillInTheGuide [

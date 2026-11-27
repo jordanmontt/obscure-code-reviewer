@@ -206,19 +206,6 @@ OCRChange >> kindMarker [
 	^ '~'
 ]
 
-{ #category : 'accessing' }
-OCRChange >> lineCount [
-	"The lines added and removed between my two sources."
-
-	| count |
-	count := 0.
-	(TextDiffBuilder from: oldSource to: newSource)
-		patchSequenceDoIfMatch: [ :line |  ]
-		ifInsert: [ :line | count := count + 1 ]
-		ifRemove: [ :line | count := count + 1 ].
-	^ count
-]
-
 { #category : 'displaying' }
 OCRChange >> name [
 	"The name shown for me in the changes tree."
@@ -294,6 +281,12 @@ OCRChange >> showContentsIn: aChangeArea comparedWith: aBaseSource [
 
 	(self isAddition and: [ aBaseSource isEmpty ]) ifTrue: [ ^ self show: newSource aloneTitled: 'Added' in: aChangeArea ].
 	self isRemoval ifTrue: [ ^ self show: aBaseSource aloneTitled: 'Removed' in: aChangeArea ].
+	self showDiffFrom: aBaseSource in: aChangeArea
+]
+
+{ #category : 'displaying' }
+OCRChange >> showDiffFrom: aBaseSource in: aChangeArea [
+
 	aChangeArea showDiffFrom: aBaseSource to: newSource
 ]
 

@@ -7,7 +7,7 @@ A small Spec 2 application for Pharo 15 to review code changes (typically writte
 A review is **everything between a base commit and the current image**, as computed by Iceberg, plus the other files of the repository:
 
 - **Code** of the packages loaded in the image: Iceberg's diff between the base commit and the image (`OCRMethodChange`, `OCRClassChange`). Class definitions are printed in the fluid format the System Browser shows (`Object << #Foo slots: {…}; tag: …; package: …`), with the comment below, instead of Iceberg's old `subclass:instanceVariableNames:…` format. The base version of a class is not in the image, so `OCRClassDefinitionPrinter` prints both sides from the Monticello definitions Iceberg keeps, following Pharo's `FluidClassDefinitionPrinter` (tests compare the two on real classes); class variables stay in Monticello's sorted order, so the diff is stable. Traits are printed the same way (`Trait << #TFoo …`, class side `Trait << TFoo classTrait`), and an empty class side is hidden for traits as for classes.
-- **Files** (`OCRFileChange`): every other file (README, DESIGN.md, `.properties`, the files of packages that are not loaded), compared as a whole between the base commit and the disk. Only files that the base commit or the last commit has are compared, so a brand-new file shows up once it is committed. A file that is not text on both sides (not UTF-8, or with a NUL byte) is binary (`OCRBinaryFileChange`): instead of a diff, the window shows its kind and sizes (e.g. `Binary file, modified: 1.20 KB → 2.00 KB`), and for a picture (PNG, JPEG, GIF, BMP) the base and disk versions side by side. A Markdown file (`.md`, `.markdown`, an `OCRMarkdownFileChange`) shows the text diff (**Source**, the default); **Rendered** switches to Microdown (`MicrodownPresenter`), base and disk side by side, and the choice stays while moving between Markdown files.
+- **Files** (`OCRFileChange`): every other file (README, DESIGN.md, `.properties`, the files of packages that are not loaded), compared as a whole between the base commit and the disk. Git says which files changed (`OCRIcebergReader>>#changedFilePathsIn:since:`): committed since the base, staged, or changed on disk; only those are read. A file git does not track is not listed, so a brand-new file shows up once it is added or committed. A file that is not text on both sides (not UTF-8, or with a NUL byte) is binary (`OCRBinaryFileChange`): instead of a diff, the window shows its kind and sizes (e.g. `Binary file, modified: 1.20 KB → 2.00 KB`), and for a picture (PNG, JPEG, GIF, BMP) the base and disk versions side by side. A Markdown file (`.md`, `.markdown`, an `OCRMarkdownFileChange`) opens **Rendered** (the default): rendered with Microdown, base and disk side by side; **Source** switches to the text diff, and the choice stays while moving between Markdown files. An added or removed Markdown file shows its one side alone, titled **Added** or **Removed**. It is rendered only when Rendered is shown, and the tool composes the rich text itself (`Microdown asRichText:`), so that when Microdown fails on a file (e.g. inline code holding only a number, pillar-markup/Microdown#1114) the window shows the source with the reason above it instead of a debugger.
 
 Supported bases (`OCRLastCommitBase`, `OCRSplitBase`):
 
@@ -26,6 +26,8 @@ Default base (`OCRDefaultBaseRule`). It never fails: when nothing better fits, i
 
 The window title always shows the repository and the base used, e.g. `base: 8808718 (split from origin/main)`. The picker lets the user choose another base.
 
+The base, the commit it resolved to and a warning when it may be wrong form an `OCRReviewBase`. When the base is a split from a local branch that lacks commits of its upstream (e.g. after a pull request was merged on GitHub and not pulled), the review would show what the upstream already merged: the window title and Copy review warn, e.g. `main (d274ab5) is behind origin/main (ae02d54)`. The base is not changed automatically.
+
 Not supported: reviewing commit by commit. Picking an arbitrary base commit may come later.
 
 > Note: the tool works best when work happens on its own branch. On `main`, the split point between `main` and `main` is the last commit, so the review shrinks to uncommitted changes (or to unpushed work when compared to `origin/main`).
@@ -42,7 +44,6 @@ Follows Iceberg's tree shape, without the `src` directory level, split into sect
 - extension methods under their own node in the package
 - a changed class definition or class comment is the class node itself
 - each item is marked as added (`+`), modified (`~`), or removed (`-`); added and removed items are also colored with the current theme's success and danger text colors, so dark and custom themes work
-- each node shows the lines added and removed under it, e.g. `~ refresh  (6 lines)` (nothing for binary files, which have no lines)
 - a commented node is **bold** and marked `[commented]`
 
 ### Topics tab (optional, needs a review guide)
@@ -102,6 +103,8 @@ The title and body of the pull request the changes will become (`OCRPullRequest`
 ├ General comment (whole review) ────────────────────────────────────┤
 ```
 
+- The toolbar, the window's shortcuts and the trees' right-click menu come from the same actions, each written once in `OCRReviewPresenter` (`refreshAction`, `reviewedAction`, `editAction`, …): the toolbar is filled from them (`SpToolbarPresenter>>#fillWith:`). The Reviewed button keeps its icon when it reads Unmark: Spec actions have a dynamic name, not a dynamic icon.
+- With nothing selected, the window asks an empty node (`OCRReviewTabsPresenter>>#selectedNode`), which has nothing to show, comment, browse or mark.
 - Side-by-side diff (`SpDiffPresenter`), old on the left, new on the right.
 - An added or removed change has one side only, so it is shown alone, in one read-only code pane titled **Added** or **Removed**. A method is highlighted for its class, and the protocol line Iceberg writes above it (`"accessing"`) moves into the title (`Added — protocol: accessing`); in a diff that line stays, as it shows a change of protocol. Class definitions (which carry their comment below) and files are not highlighted. Code moved from another change (`<-` in the guide) keeps its diff.
 - The code panes and the comment boxes offer Pharo's code search on the selection: right-click → **Code search**, Cmd+M for implementors, Cmd+N for senders. The comment boxes are code panes without highlighting, line numbers or smart characters, so they read as plain text. Each review runs in its own application, an `OCRApplication` (see `OCRReviewPresenter class>>#currentApplication`); a review opened from the picker runs in the picker's. Spec runs a code pane's commands in the pane's application, so the browsers they open run in it too: it is a Pharo tool application (a subclass of `StPharoApplication`) because they fail in Spec's default null application. It is never `run`, which would make it the Pharo IDE's application and close its windows.
@@ -138,6 +141,7 @@ Copies Markdown to the clipboard, ready to paste to the agent. Only commented it
 
 ```markdown
 Review of <repo>, base <short commit id> (<label>)
+Warning: main (d274ab5) is behind origin/main (ae02d54)
 Reviewed: 12 of 40 changes.
 
 ## Pull request (edited by the reviewer)
@@ -158,7 +162,7 @@ Title: <title>
 - Foo>>#baz (added)
 ```
 
-Order: the progress line and the "Not reviewed yet" list only when at least one change is marked; the pull request only when the reviewer edited it; then the general comment, topics in the guide's order, and changes in Structure tree order.
+Order: the warning only when the base may be wrong; the progress line and the "Not reviewed yet" list only when at least one change is marked; the pull request only when the reviewer edited it; then the general comment, topics in the guide's order, and changes in Structure tree order.
 
 ## Opening the tool
 
@@ -172,11 +176,11 @@ Order: the progress line and the "Not reviewed yet" list only when at least one 
 
 - Packages: `ObscureCodeReviewer` (tags `Model`, `UI`), `ObscureCodeReviewer-Tests`, `BaselineOfObscureCodeReviewer`.
 - Main classes:
-  - model: `OCRReview` (changes, marks, guide, pull request), `OCRReviewComments`, `OCRChange` and its subclasses, `OCRReviewGuide` / `OCRGuideParser` / `OCRTopic`, `OCRPullRequest`, the bases and `OCRDefaultBaseRule`, `OCRBaseChoices`;
+  - model: `OCRReview` (changes, marks, guide, pull request), `OCRReviewComments`, `OCRChange` and its subclasses, `OCRReviewGuide` / `OCRGuideParser` / `OCRTopic`, `OCRPullRequest`, the bases, `OCRReviewBase` and `OCRDefaultBaseRule`, `OCRBaseChoices`;
   - trees: `OCRStructuralTreeBuilder`, `OCRTopicTreeBuilder`, and the nodes `OCRContainerNode`, `OCRChangeNode`, `OCRTopicNode`;
   - output: `OCRFeedbackWriter` (Copy review);
   - Iceberg: `OCRIcebergReader` only;
-  - UI: `OCRReviewPresenter` (the window), made of `OCRReviewToolbar`, `OCRReviewTabsPresenter` (the four tabs, with `OCRGuidePresenter`, `OCRPullRequestPresenter` and `OCRNotebookPage` for the hover help) and `OCRChangeAreaPresenter` (diff, notes, editor, topic text, `OCRMarkdownFilePresenter`, `OCRBinaryFilePresenter`); `OCRPickerPresenter`.
+  - UI: `OCRReviewPresenter` (the window and its actions), made of a toolbar, `OCRReviewTabsPresenter` (the four tabs, with `OCRGuidePresenter`, `OCRPullRequestPresenter`, and notebook pages with hover help) and `OCRChangeAreaPresenter` (diff, notes, editor, topic text, `OCRMarkdownFilePresenter`, `OCRBinaryFilePresenter`); `OCRPickerPresenter`.
 - Class prefix: `OCR`.
 - The tool uses its own small model classes (`OCRChange`, `OCRReview`, …). A single reader class knows Iceberg's API and turns an Iceberg diff into `OCRChange`s; it is kept as small as possible.
 
@@ -184,7 +188,7 @@ Order: the progress line and the "Not reviewed yet" list only when at least one 
 
 - Code must stay understandable and editable by humans.
 - Model separate from Spec presenters; presenters stay thin.
-- SUnit tests for the model, built from hand-made `OCRMethodChange`s, `OCRClassChange`s and `OCRFileChange`s. Iceberg itself is not tested, so `OCRIcebergReader` is not either.
+- SUnit tests for the model, built from hand-made `OCRMethodChange`s, `OCRClassChange`s and `OCRFileChange`s; the builders the tests share are in `OCRTestCase`. Iceberg and git themselves are not tested: `OCRIcebergReader` is tested only where it works on plain files (`OCRIcebergReaderTest`, with in-memory stubs).
 - No nil as a value: different cases are different classes (`OCRMethodChange` / `OCRClassChange`, `OCRContainerNode` / `OCRChangeNode`).
 - Small methods, intention-revealing names, a class comment on every class, no metaprogramming.
 - The Pharo critics (`critique_run` over the three packages) report nothing, except two false positives: `BaselineOfObscureCodeReviewer` (loaded by Metacello by name) and `OCRPickerPresenter` (used from its `<worldMenu>` pragma) are "not referenced".
@@ -199,7 +203,7 @@ Order: the progress line and the "Not reviewed yet" list only when at least one 
 6. Picker and world menu entry.
 7. Topics: guide parser, paste box, warnings.
 8. Files and pull request: non-code files and packages not loaded, the Pull request tab, why on a single change (ideas from the CodeReview tool, `github://guillep/pharo-review`).
-9. Reviewed marks, moved-code links, line counts, "Not reviewed yet" in Copy review (also from CodeReview).
+9. Reviewed marks, moved-code links, line counts (removed later: unused), "Not reviewed yet" in Copy review (also from CodeReview).
 10. README for Pharo developers: clear and straight to the point, including the branch caveat.
 
 Not planned: a "Create pull request" button. Opening a pull request needs the agent's PR style and the reviewer's go-ahead, which live in the agent skills, not in the image.

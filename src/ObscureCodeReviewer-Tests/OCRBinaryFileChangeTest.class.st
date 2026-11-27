@@ -26,12 +26,6 @@ OCRBinaryFileChangeTest >> pngBytes [
 ]
 
 { #category : 'tests' }
-OCRBinaryFileChangeTest >> testABinaryFileHasNoLines [
-
-	self assert: (self fileAt: 'logo.png' from: self pngBytes to: #[ 1 2 ]) lineCount equals: 0
-]
-
-{ #category : 'tests' }
 OCRBinaryFileChangeTest >> testABinaryFileNamedLikeMarkdownIsBinary [
 
 	self assert: (self fileAt: 'README.md' from: self pngBytes to: self pngBytes) isBinary

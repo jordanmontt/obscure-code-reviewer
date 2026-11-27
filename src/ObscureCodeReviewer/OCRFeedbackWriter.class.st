@@ -65,6 +65,11 @@ OCRFeedbackWriter >> writeHeaderOf: aReview on: aStream [
 		nextPutAll: ', base ';
 		nextPutAll: aReview baseLabel;
 		lf.
+	aReview hasBaseWarning ifTrue: [
+		aStream
+			nextPutAll: 'Warning: ';
+			nextPutAll: aReview baseWarning;
+			lf ].
 	aReview reviewedCount > 0 ifTrue: [
 		aStream
 			nextPutAll: 'Reviewed: ';

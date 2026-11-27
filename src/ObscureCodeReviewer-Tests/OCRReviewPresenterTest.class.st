@@ -3,7 +3,7 @@ I test OCRReviewPresenter without opening it: the guide is the one the review co
 "
 Class {
 	#name : 'OCRReviewPresenterTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
@@ -11,31 +11,83 @@ Class {
 { #category : 'helpers' }
 OCRReviewPresenterTest >> emptyReview [
 
+	^ self reviewWith: #(  )
+]
+
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> enabledToolbarLabelsOf: aPresenter [
+
+	^ (aPresenter toolbar items select: [ :each | each isEnabled ]) collect: [ :each | each label ] as: Array
+]
+
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> presenterOnEditableMethod [
+	"A window whose selection is a modified method of this class, which can be marked, browsed and edited."
+
+	| presenter |
+	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
+	presenter nextReview: self reviewWithEditableMethod.
+	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#emptyReview'.
+	^ presenter
+]
+
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> reviewWithEditableMethod [
+
 	^ OCRReview
 		  repositoryName: 'my-project'
-		  base: OCRLastCommitBase new
-		  baseLabel: 'abc1234 (last commit)'
-		  changes: #(  )
+		  reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'abc1234')
+		  changes: { (OCRMethodChangeStub modification
+			   packageName: 'MyPackage';
+			   className: 'OCRReviewPresenterTest';
+			   selector: #emptyReview;
+			   yourself) }
 ]
 
 { #category : 'helpers' }
 OCRReviewPresenterTest >> reviewWithMethod: aSelector [
+	"A method of this class, so implementors and senders find it."
 
-	^ OCRReview
-		  repositoryName: 'my-project'
-		  base: OCRLastCommitBase new
-		  baseLabel: 'abc1234 (last commit)'
-		  changes: { (OCRMethodChange modification
-			   packageName: 'MyPackage';
-			   className: 'OCRReviewPresenterTest';
-			   selector: aSelector;
-			   yourself) }
+	^ self reviewWith: { (self methodChange: aSelector class: 'OCRReviewPresenterTest') }
 ]
 
 { #category : 'helpers' }
 OCRReviewPresenterTest >> shortcutOf: aPresenter keyed: aKeyCombination [
 
 	^ aPresenter actions allCommands detect: [ :each | each shortcutKey = aKeyCombination ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testANewReviewKeepsTheSelectionInTheStructureTab [
+	"Showing a new review resets both trees; clearing the Topics tree must not move the selection there."
+
+	| tabs |
+	tabs := OCRReviewTabsPresenter on: (self reviewWithMethod: #a).
+	tabs whenSelectionChangedDo: [ ].
+	tabs selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
+
+	tabs showReview: (self reviewWithMethod: #a).
+	tabs selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
+
+	self assert: tabs isSelectingInStructure
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testASelectedMethodCanBeMarkedBrowsedAndEditedFromTheToolbar [
+
+	self
+		assert: (self enabledToolbarLabelsOf: self presenterOnEditableMethod)
+		equals: #( 'Refresh' 'Copy review' 'Reviewed' 'Browse' 'Edit' )
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testATreeLabelIsTheNodeAndItsMarks [
+	"No line count: only what the node is, and whether it is reviewed or commented."
+
+	| review |
+	review := self reviewWith: { (self methodChange: #a class: 'MyClass') }.
+
+	self assert: ((OCRReviewTabsPresenter on: review) labelFor: review structuralTree first) equals: 'Code'
 ]
 
 { #category : 'tests' }
@@ -107,10 +159,23 @@ OCRReviewPresenterTest >> testImplementorsAndSendersOfASelectedMethod [
 	presenter := OCRReviewPresenterStub on: (self reviewWithMethod: #a).
 	presenter nextReview: (self reviewWithMethod: #a).
 
-	presenter reloadReviewWithGuide: OCRReviewGuide empty selecting: 'OCRReviewPresenterTest>>#a'.
+	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
 
 	self assert: (self shortcutOf: presenter keyed: $m actionModifier) canBeExecuted.
 	self assert: (self shortcutOf: presenter keyed: $n actionModifier) canBeExecuted
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testNothingSelectedIsANodeWithNothingToShow [
+	"No nil: the window asks the selected node, whatever is selected."
+
+	| node |
+	node := (OCRReviewTabsPresenter on: self emptyReview) selectedNode.
+
+	self deny: node hasChange.
+	self deny: node isCommentable.
+	self deny: node canBrowse.
+	self assert: node changesBelow isEmpty
 ]
 
 { #category : 'tests' }
@@ -127,6 +192,21 @@ OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 	presenter refresh.
 
 	self assert: next guide identicalTo: guide
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSavingAnEditKeepsTheSelection [
+
+	| presenter |
+	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
+	presenter nextReview: self reviewWithEditableMethod.
+	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#emptyReview'.
+	presenter startEditing.
+
+	presenter saveEdit.
+
+	self assert: presenter hasSelectedChange.
+	self assert: presenter selectedChange reference equals: 'OCRReviewPresenterTest>>#emptyReview'
 ]
 
 { #category : 'tests' }
@@ -192,10 +272,73 @@ OCRReviewPresenterTest >> testTheMenuItemsHaveTheIconsOfTheirButtons [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testTheReviewedButtonUnmarksAReviewedSelection [
+
+	| presenter |
+	presenter := self presenterOnEditableMethod.
+
+	presenter toggleReviewed.
+
+	self assert: (self enabledToolbarLabelsOf: presenter) equals: #( 'Refresh' 'Copy review' 'Unmark' 'Browse' 'Edit' )
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheTitleHasNoWarningWhenTheBaseIsUpToDate [
+
+	self
+		assert: (OCRReviewPresenter on: self emptyReview) windowTitle
+		equals: 'Obscure Code Reviewer - my-project - base: abc1234 (last commit)'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheTitleWarnsWhenTheBaseIsStale [
+	"The local main is behind its upstream: a split from it shows what the upstream already merged."
+
+	| review |
+	review := OCRReview
+		          repositoryName: 'my-project'
+		          reviewBase: (OCRReviewBase
+			           base: (OCRSplitBase fromBranchNamed: 'main')
+			           commitId: 'd274ab5'
+			           warning: 'main (d274ab5) is behind origin/main (ae02d54)')
+		          changes: #(  ).
+
+	self
+		assert: (OCRReviewPresenter on: review) windowTitle
+		equals:
+		'Obscure Code Reviewer - my-project - base: d274ab5 (split from main) - WARNING: main (d274ab5) is behind origin/main (ae02d54)'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheToolbarOffersTheActionsOfTheReview [
+
+	self
+		assert: ((OCRReviewPresenter on: self emptyReview) toolbar items collect: [ :each | each label ] as: Array)
+		equals: #( 'Refresh' 'Copy review' 'Reviewed' 'Browse' 'Edit' 'Save' 'Cancel' )
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testTheWindowRunsInTheReviewerApplication [
 
 	| presenter |
 	presenter := OCRReviewPresenter on: self emptyReview.
 
 	self assert: (presenter application isKindOf: OCRApplication)
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testWhileEditingTheToolbarSavesOrCancels [
+
+	| presenter |
+	presenter := self presenterOnEditableMethod.
+
+	presenter startEditing.
+
+	self assert: (self enabledToolbarLabelsOf: presenter) equals: #( 'Copy review' 'Save' 'Cancel' )
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testWithoutSelectionTheToolbarOnlyRefreshesAndCopies [
+
+	self assert: (self enabledToolbarLabelsOf: (OCRReviewPresenter on: self emptyReview)) equals: #( 'Refresh' 'Copy review' )
 ]

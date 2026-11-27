@@ -3,7 +3,7 @@ I am the left side of the review window: the Structure, Topics, Guide and Pull r
 
 The selection is the one of the tree clicked last (Structure or Topics). In the trees:
 - the icon says what a node is, + / ~ / - and the color say whether it was added, modified or removed;
-- a node shows how many lines changed under it, and whether everything under it is reviewed;
+- a node shows whether everything under it is reviewed;
 - a commented node is bold, and marked [commented].
 "
 Class {
@@ -95,25 +95,19 @@ OCRReviewTabsPresenter >> isCommented: aNode [
 	^ aNode isCommentable and: [ review hasCommentOn: aNode commentable ]
 ]
 
-{ #category : 'selection' }
-OCRReviewTabsPresenter >> isSelectionEmpty [
+{ #category : 'testing' }
+OCRReviewTabsPresenter >> isSelectingInStructure [
+	"Whether the selection is the one of the Structure tab, not of the Topics tab."
 
-	^ activeTree selection isEmpty
+	^ activeTree == changesTree
 ]
 
 { #category : 'showing' }
 OCRReviewTabsPresenter >> labelFor: aNode [
-	"The node, the lines changed under it, and whether it is reviewed and commented."
+	"The node, and whether it is reviewed and commented."
 
-	| lineCount |
-	lineCount := review lineCountUnder: aNode.
 	^ String streamContents: [ :stream |
 		  stream nextPutAll: aNode label.
-		  lineCount > 0 ifTrue: [
-			  stream
-				  nextPutAll: '  (';
-				  print: lineCount;
-				  nextPutAll: ' lines)' ].
 		  (review areAllReviewed: aNode changesBelow) ifTrue: [ stream nextPutAll: '  [reviewed]' ].
 		  (self isCommented: aNode) ifTrue: [ stream nextPutAll: '  [commented]' ] ]
 ]
@@ -157,9 +151,9 @@ OCRReviewTabsPresenter >> selectItemReferenced: aReference [
 
 { #category : 'selection' }
 OCRReviewTabsPresenter >> selectedNode [
-	"Only valid when #isSelectionEmpty is false."
+	"With nothing selected, an empty node: nothing to show, comment, browse or mark."
 
-	^ activeTree selectedItem
+	^ activeTree selectedItem ifNil: [ OCRContainerNode named: 'Nothing selected' ]
 ]
 
 { #category : 'accessing - model' }
@@ -217,12 +211,12 @@ OCRReviewTabsPresenter >> whenPullRequestChangedDo: aBlock [
 
 { #category : 'events' }
 OCRReviewTabsPresenter >> whenSelectionChangedDo: aBlock [
-	"The selection follows the tree clicked last."
+	"The selection follows the tree clicked last. A tree whose selection was cleared, as #showReview: clears both, does not take it."
 
-	changesTree whenSelectionChangedDo: [
-		activeTree := changesTree.
-		aBlock value ].
-	topicsTree whenSelectionChangedDo: [
-		activeTree := topicsTree.
-		aBlock value ]
+	{
+		changesTree.
+		topicsTree } do: [ :tree |
+			tree whenSelectionChangedDo: [
+				tree selection isEmpty ifFalse: [ activeTree := tree ].
+				aBlock value ] ]
 ]

@@ -3,7 +3,7 @@ I test how a refreshed OCRReview keeps the comments of the review it replaces.
 "
 Class {
 	#name : 'OCRReviewRefreshTest',
-	#superclass : 'TestCase',
+	#superclass : 'OCRTestCase',
 	#category : 'ObscureCodeReviewer-Tests',
 	#package : 'ObscureCodeReviewer-Tests'
 }
@@ -11,21 +11,7 @@ Class {
 { #category : 'helpers' }
 OCRReviewRefreshTest >> methodChange: aSelector [
 
-	^ OCRMethodChange modification
-		  packageName: 'MyProject';
-		  className: 'MyClass';
-		  selector: aSelector;
-		  yourself
-]
-
-{ #category : 'helpers' }
-OCRReviewRefreshTest >> reviewWith: someChanges [
-
-	^ OCRReview
-		  repositoryName: 'my-project'
-		  base: OCRLastCommitBase new
-		  baseLabel: 'abc1234 (last commit)'
-		  changes: someChanges
+	^ self methodChange: aSelector class: 'MyClass'
 ]
 
 { #category : 'tests' }

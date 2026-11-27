@@ -57,13 +57,6 @@ OCRBinaryFileChange >> isPicture [
 ]
 
 { #category : 'accessing' }
-OCRBinaryFileChange >> lineCount [
-	"A binary file has no lines."
-
-	^ 0
-]
-
-{ #category : 'accessing' }
 OCRBinaryFileChange >> newBytes [
 	"The file on disk. Empty for a removal."
 
