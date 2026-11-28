@@ -1,5 +1,5 @@
 "
-I am the Pull request tab of the review window: the title and the body of the pull request the changes will become (an OCRPullRequest).
+I am the pull request in the overview of the review window: the title and the body of the pull request the changes will become (an OCRPullRequest).
 
 The agent drafts them at the top of the review guide; the reviewer edits them here. Copy review includes them when they were edited, and the agent opens the pull request from them.
 "

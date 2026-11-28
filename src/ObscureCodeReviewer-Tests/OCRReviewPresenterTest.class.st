@@ -1,5 +1,5 @@
 "
-I test OCRReviewPresenter without opening it: the guide is the one the review comes with, never a stored one.
+I test the review window as a reviewer uses it, through OCRReviewDriver, without opening it: what can be clicked, selected, commented and refreshed, not where it sits. The guide is the one the review comes with, never a stored one.
 "
 Class {
 	#name : 'OCRReviewPresenterTest',
@@ -9,26 +9,18 @@ Class {
 }
 
 { #category : 'helpers' }
+OCRReviewPresenterTest >> driverOnEditableMethod [
+	"A window whose selection is a modified method of this class, which can be marked, browsed and edited."
+
+	^ (OCRReviewDriver on: self reviewWithEditableMethod)
+		  click: 'OCRReviewPresenterTest>>#emptyReview';
+		  yourself
+]
+
+{ #category : 'helpers' }
 OCRReviewPresenterTest >> emptyReview [
 
 	^ self reviewWith: #(  )
-]
-
-{ #category : 'helpers' }
-OCRReviewPresenterTest >> enabledToolbarLabelsOf: aPresenter [
-
-	^ (aPresenter toolbar items select: [ :each | each isEnabled ]) collect: [ :each | each label ] as: Array
-]
-
-{ #category : 'helpers' }
-OCRReviewPresenterTest >> presenterOnEditableMethod [
-	"A window whose selection is a modified method of this class, which can be marked, browsed and edited."
-
-	| presenter |
-	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
-	presenter nextReview: self reviewWithEditableMethod.
-	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#emptyReview'.
-	^ presenter
 ]
 
 { #category : 'helpers' }
@@ -52,57 +44,91 @@ OCRReviewPresenterTest >> reviewWithMethod: aSelector [
 ]
 
 { #category : 'helpers' }
-OCRReviewPresenterTest >> shortcutOf: aPresenter keyed: aKeyCombination [
+OCRReviewPresenterTest >> reviewWithMethods: someSelectors [
+	"Methods of this class, in this order in the tree."
 
-	^ aPresenter actions allCommands detect: [ :each | each shortcutKey = aKeyCombination ]
+	^ self reviewWith: (someSelectors collect: [ :each | self methodChange: each class: 'OCRReviewPresenterTest' ])
+]
+
+{ #category : 'helpers' }
+OCRReviewPresenterTest >> reviewWithTopic [
+
+	^ self reviewWith: { (self methodChange: #a class: 'OCRReviewPresenterTest') } guide: '# Parse faster
+The stream was re-scanned.
+- OCRReviewPresenterTest>>#a'
 ]
 
 { #category : 'tests' }
-OCRReviewPresenterTest >> testANewReviewKeepsTheSelectionInTheStructureTab [
-	"Showing a new review resets both trees; clearing the Topics tree must not move the selection there."
+OCRReviewPresenterTest >> testAChangeIsTitledWithItsReferenceUnderItsGroups [
 
-	| tabs |
-	tabs := OCRReviewTabsPresenter on: (self reviewWithMethod: #a).
-	tabs whenSelectionChangedDo: [ ].
-	tabs selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethods: #( #a )).
 
-	tabs showReview: (self reviewWithMethod: #a).
-	tabs selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
+	driver click: 'OCRReviewPresenterTest>>#a'.
 
-	self assert: tabs isSelectingInStructure
+	self assert: driver shownTitle equals: 'OCRReviewPresenterTest>>#a'.
+	self assert: driver shownKicker equals: 'Code › MyProject › OCRReviewPresenterTest'
 ]
 
 { #category : 'tests' }
-OCRReviewPresenterTest >> testASelectedMethodCanBeMarkedBrowsedAndEditedFromTheToolbar [
+OCRReviewPresenterTest >> testARefreshKeepsTheSelectionInTheFilesView [
+	"A refresh resets both views; resetting the topics view must not move the selection there."
+
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethod: #a).
+	driver click: 'OCRReviewPresenterTest>>#a'.
+	driver nextReview: (self reviewWithMethod: #a).
+
+	driver refresh.
+
+	self assert: driver isSelectingInFiles.
+	self assert: driver selectedChangeReference equals: 'OCRReviewPresenterTest>>#a'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testASelectedMethodCanBeMarkedBrowsedAndEdited [
 
 	self
-		assert: (self enabledToolbarLabelsOf: self presenterOnEditableMethod)
-		equals: #( 'Refresh' 'Copy review' 'Reviewed' 'Browse' 'Edit' )
+		assert: self driverOnEditableMethod enabledActions
+		equals: #( 'Browse' 'Edit' 'Finish review' 'Implementors' 'Refresh' 'Review all' 'Reviewed' 'Senders' )
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testATopicShowsWhyAndItsChanges [
+
+	| driver |
+	driver := OCRReviewDriver on: self reviewWithTopic.
+	driver showTopicsView.
+
+	driver click: 'Topic: Parse faster'.
+
+	self assert: driver shownTitle equals: 'Parse faster'.
+	self assert: driver shownTopicExplanation equals: 'The stream was re-scanned.'.
+	self assert: driver shownTopicChanges equals: #( 'OCRReviewPresenterTest>>#a' )
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testATreeLabelIsTheNodeAndItsMarks [
-	"No line count: only what the node is, and whether it is reviewed or commented."
+	"No line count: only what the node is. Whether it is reviewed or commented has its own columns."
 
-	| review |
-	review := self reviewWith: { (self methodChange: #a class: 'MyClass') }.
-
-	self assert: ((OCRReviewTabsPresenter on: review) labelFor: review structuralTree first) equals: 'Code'
+	self
+		assert: (OCRReviewDriver on: (self reviewWith: { (self methodChange: #a class: 'MyClass') })) topRowLabels
+		equals: #( 'Overview' 'Code' )
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testApplyKeepsTheReviewerEditsOfThePullRequest [
 
-	| review presenter next |
+	| review driver next |
 	review := self emptyReview
 		          guide: (OCRReviewGuide fromText: 'Title: Draft');
 		          yourself.
-	presenter := OCRReviewPresenterStub on: review.
+	driver := OCRReviewDriver on: review.
 	review pullRequest: (OCRPullRequest title: 'Mine' body: '').
 	next := self emptyReview.
-	presenter nextReview: next.
+	driver nextReview: next.
 
-	presenter applyGuide: 'Title: New draft'.
+	driver applyGuide: 'Title: New draft'.
 
 	self assert: next pullRequest title equals: 'Mine'
 ]
@@ -110,26 +136,36 @@ OCRReviewPresenterTest >> testApplyKeepsTheReviewerEditsOfThePullRequest [
 { #category : 'tests' }
 OCRReviewPresenterTest >> testApplyShowsTheNewGuide [
 
-	| presenter next |
-	presenter := OCRReviewPresenterStub on: (self emptyReview
-		              guide: (OCRReviewGuide fromText: '# Parse faster');
-		              yourself).
+	| driver next |
+	driver := OCRReviewDriver on: (self emptyReview
+		           guide: (OCRReviewGuide fromText: '# Parse faster');
+		           yourself).
 	next := self emptyReview.
-	presenter nextReview: next.
+	driver nextReview: next.
 
-	presenter applyGuide: '# Clean up'.
+	driver applyGuide: '# Clean up'.
 
 	self assert: (next guide topics collect: [ :each | each title ] as: Array) equals: #( 'Clean up' )
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testClickingARowAfterSelectAllSelectsOnlyIt [
+
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethods: #( #a #b )).
+	driver press: $a actionModifier.
+
+	driver click: 'OCRReviewPresenterTest>>#b'.
+
+	self assert: driver selectedChangeReference equals: 'OCRReviewPresenterTest>>#b'
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testCommentPanesOfferImplementorsAndSenders [
 	"A reviewer selects a selector in a comment and looks it up, as in a code pane."
 
-	| pane names |
-	pane := (OCRReviewPresenter on: self emptyReview) newCommentPane.
-
-	names := pane rootCommandsGroup allCommands collect: [ :each | each name ].
+	| names |
+	names := (OCRReviewDriver on: self emptyReview) commentMenuItemNames.
 
 	self assert: (names includes: 'Implementors of it').
 	self assert: (names includes: 'Senders of it')
@@ -138,58 +174,62 @@ OCRReviewPresenterTest >> testCommentPanesOfferImplementorsAndSenders [
 { #category : 'tests' }
 OCRReviewPresenterTest >> testEachReviewHasItsOwnApplication [
 
-	self
-		deny: (OCRReviewPresenter on: self emptyReview) application
-		identicalTo: (OCRReviewPresenter on: self emptyReview) application
+	self deny: (OCRReviewDriver on: self emptyReview) application identicalTo: (OCRReviewDriver on: self emptyReview) application
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testEscapeCancelsOnlyWhileEditing [
 
-	| presenter |
-	presenter := OCRReviewPresenter on: self emptyReview.
+	self deny: ((OCRReviewDriver on: self emptyReview) canPress: Character escape asKeyCombination)
+]
 
-	self deny: (self shortcutOf: presenter keyed: Character escape asKeyCombination) canBeExecuted
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testFinishingSaysWhatIsNotReviewedYet [
+
+	| review dialog |
+	review := self reviewWithMethods: #( #a #b ).
+	review markReviewed: review changes first.
+
+	dialog := (OCRReviewDriver on: review) finishDialog.
+
+	self assert: dialog shownSummary equals: '1 of 2 changes reviewed, 0 comments'.
+	self assert: (dialog shownUnreviewed beginsWith: '1 change is not reviewed yet')
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testImplementorsAndSendersOfASelectedMethod [
 
-	| presenter |
-	presenter := OCRReviewPresenterStub on: (self reviewWithMethod: #a).
-	presenter nextReview: (self reviewWithMethod: #a).
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethod: #a).
 
-	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#a'.
+	driver click: 'OCRReviewPresenterTest>>#a'.
 
-	self assert: (self shortcutOf: presenter keyed: $m actionModifier) canBeExecuted.
-	self assert: (self shortcutOf: presenter keyed: $n actionModifier) canBeExecuted
+	self assert: (driver canPress: $m actionModifier).
+	self assert: (driver canPress: $n actionModifier)
 ]
 
 { #category : 'tests' }
-OCRReviewPresenterTest >> testNothingSelectedIsANodeWithNothingToShow [
-	"No nil: the window asks the selected node, whatever is selected."
+OCRReviewPresenterTest >> testNothingSelectedShowsNothingToComment [
 
-	| node |
-	node := (OCRReviewTabsPresenter on: self emptyReview) selectedNode.
+	| driver |
+	driver := OCRReviewDriver on: self emptyReview.
 
-	self deny: node hasChange.
-	self deny: node isCommentable.
-	self deny: node canBrowse.
-	self assert: node changesBelow isEmpty
+	self deny: driver isShowingAChange.
+	self deny: driver canComment
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 
-	| guide presenter next |
+	| guide driver next |
 	guide := OCRReviewGuide fromText: '# Parse faster'.
-	presenter := OCRReviewPresenterStub on: (self emptyReview
-		              guide: guide;
-		              yourself).
+	driver := OCRReviewDriver on: (self emptyReview
+		           guide: guide;
+		           yourself).
 	next := self emptyReview.
-	presenter nextReview: next.
+	driver nextReview: next.
 
-	presenter refresh.
+	driver refresh.
 
 	self assert: next guide identicalTo: guide
 ]
@@ -198,65 +238,189 @@ OCRReviewPresenterTest >> testRefreshKeepsTheGuide [
 OCRReviewPresenterTest >> testRefreshUpdatesTheWindowTitle [
 	"After new commits, a refresh compares with another base commit: the title says so."
 
-	| presenter window |
-	presenter := OCRReviewPresenterStub on: self emptyReview.
-	window := presenter asWindow.
-	presenter nextReview:
+	| driver |
+	driver := OCRReviewDriver on: self emptyReview.
+	driver windowTitle.
+	driver nextReview:
 		(OCRReview
 			 repositoryName: 'my-project'
 			 reviewBase: (OCRReviewBase base: OCRLastCommitBase new commitId: 'def5678')
 			 changes: #(  )).
 
-	presenter refresh.
+	driver refresh.
 
-	self assert: window title equals: 'Obscure Code Reviewer - my-project - base: def5678 (last commit)'
+	self assert: driver windowTitle equals: 'Obscure Code Reviewer - my-project - base: def5678 (last commit)'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testReviewAllMarksEveryChange [
+
+	| review driver |
+	review := self reviewWithMethods: #( #a #b ).
+	driver := OCRReviewDriver on: review.
+
+	driver do: 'Review all'.
+
+	self assert: review reviewedCount equals: 2.
+	self deny: (driver enabledActions includes: 'Review all')
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testReviewedGoesToTheNextChangeNotReviewed [
+
+	| review driver |
+	review := self reviewWithMethods: #( #a #b #c ).
+	review markReviewed: review changes second.
+	driver := OCRReviewDriver on: review.
+	driver click: 'OCRReviewPresenterTest>>#a'.
+
+	driver do: 'Reviewed'.
+
+	self assert: driver selectedChangeReference equals: 'OCRReviewPresenterTest>>#c'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testReviewedStaysWhenEverythingIsReviewed [
+
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethods: #( #a )).
+	driver click: 'OCRReviewPresenterTest>>#a'.
+
+	driver do: 'Reviewed'.
+
+	self assert: driver selectedChangeReference equals: 'OCRReviewPresenterTest>>#a'
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testSavingAnEditKeepsTheSelection [
 
-	| presenter |
-	presenter := OCRReviewPresenterStub on: self reviewWithEditableMethod.
-	presenter nextReview: self reviewWithEditableMethod.
-	presenter selectItemReferenced: 'OCRReviewPresenterTest>>#emptyReview'.
-	presenter startEditing.
+	| driver |
+	driver := self driverOnEditableMethod.
+	driver do: 'Edit'.
 
-	presenter saveEdit.
+	driver do: 'Save'.
 
-	self assert: presenter hasSelectedChange.
-	self assert: presenter selectedChange reference equals: 'OCRReviewPresenterTest>>#emptyReview'
+	self assert: driver selectedChangeReference equals: 'OCRReviewPresenterTest>>#emptyReview'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSelectAllThenReviewedMarksEveryChange [
+
+	| review driver |
+	review := self reviewWithMethods: #( #a #b ).
+	driver := OCRReviewDriver on: review.
+
+	driver press: $a actionModifier.
+	driver do: 'Reviewed'.
+
+	self assert: review reviewedCount equals: 2
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSelectingChangesOneAfterAnotherKeepsNoOldWidgets [
+	"Each selection used to leave its diff widget in memory, and every later selection got slower (see OCRReviewPresenter>>#showContent:)."
+
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethods: #( #a #b )).
+	driver openWindow.
+	[
+		10 timesRepeat: [
+			driver click: 'OCRReviewPresenterTest>>#a'.
+			driver click: 'OCRReviewPresenterTest>>#b' ].
+
+		self assert: driver liveDiffWidgets <= 1 ] ensure: [ driver closeWindow ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSelectingSeveralRowsSaysHowManyChanges [
+
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethods: #( #a #b )).
+
+	driver press: $a actionModifier.
+
+	self assert: driver shownTitle equals: '2 changes selected'.
+	self deny: driver canComment
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testShortcutsAreDisabledLikeTheirButtonsWhenNothingIsSelected [
 	"Cmd+R marks as reviewed, Cmd+B browses, Cmd+E edits, Cmd+M and Cmd+N browse implementors and senders: they need a selection."
 
-	| presenter |
-	presenter := OCRReviewPresenter on: self emptyReview.
+	| driver |
+	driver := OCRReviewDriver on: self emptyReview.
 
 	{
 		$r actionModifier.
 		$b actionModifier.
 		$e actionModifier.
 		$m actionModifier.
-		$n actionModifier } do: [ :each | self deny: (self shortcutOf: presenter keyed: each) canBeExecuted ]
+		$n actionModifier } do: [ :each | self deny: (driver canPress: each) ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSwitchingToFilesFromATopicShowsTheOverview [
+
+	| driver |
+	driver := OCRReviewDriver on: self reviewWithTopic.
+	driver showTopicsView.
+	driver click: 'Topic: Parse faster'.
+
+	driver showFilesView.
+
+	self assert: driver isSelectingInFiles.
+	self assert: driver shownTitle equals: 'Overview'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSwitchingToTopicsKeepsTheSelectedChange [
+
+	| driver |
+	driver := OCRReviewDriver on: self reviewWithTopic.
+	driver click: 'OCRReviewPresenterTest>>#a'.
+
+	driver showTopicsView.
+
+	self deny: driver isSelectingInFiles.
+	self assert: driver selectedChangeReference equals: 'OCRReviewPresenterTest>>#a'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSwitchingViewsManyTimesKeepsNoOldWidgets [
+
+	| driver |
+	driver := OCRReviewDriver on: self reviewWithTopic.
+	driver openWindow.
+	[
+		5 timesRepeat: [
+			driver showTopicsView.
+			driver showFilesView ].
+
+		self assert: driver liveTreeWidgets <= 2 ] ensure: [ driver closeWindow ]
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testTheActionsAreInTheMenuExceptEscape [
-	"The trees show the window's actions in their right-click menu, each with its key."
+	"The changes show the window's actions in their right-click menu, each with its key."
 
-	| presenter visible |
-	presenter := OCRReviewPresenter on: self emptyReview.
-
-	visible := presenter actions allCommands select: [ :each | each isVisible ] thenCollect: [ :each | each shortcutKey ].
-
-	self assert: visible asSet equals: {
+	self assert: (OCRReviewDriver on: self emptyReview) menuShortcuts equals: {
 		$r actionModifier.
+		$a actionModifier.
 		$b actionModifier.
 		$e actionModifier.
 		$m actionModifier.
 		$n actionModifier } asSet
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheGeneralCommentWrittenWhenFinishingIsInTheCopiedReview [
+
+	| review |
+	review := self reviewWithMethods: #( #a ).
+
+	(OCRReviewDriver on: review) finishWithGeneralComment: 'Looks good'.
+
+	self assert: (review feedback includesSubstring: 'Looks good')
 ]
 
 { #category : 'tests' }
@@ -268,43 +432,69 @@ OCRReviewPresenterTest >> testTheGuideIsTheOneOfTheReview [
 		          guide: guide;
 		          yourself.
 
-	OCRReviewPresenter on: review.
+	OCRReviewDriver on: review.
 
 	self assert: review guide identicalTo: guide
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheHeaderCountsReviewedChangesAndComments [
+
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethods: #( #a #b )).
+	driver click: 'OCRReviewPresenterTest>>#a'.
+
+	driver comment: 'Why?'.
+	driver do: 'Reviewed'.
+
+	self assert: driver shownProgress equals: '1 of 2 reviewed, 1 comment'
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testTheMenuItemsHaveTheIconsOfTheirButtons [
 	"Implementors and senders have the magnifier of the System Browser's code menu."
 
-	| presenter |
-	presenter := OCRReviewPresenter on: self emptyReview.
+	| driver |
+	driver := OCRReviewDriver on: self emptyReview.
 
 	{
 		($r actionModifier -> #smallOk).
 		($b actionModifier -> #glamorousBrowse).
 		($e actionModifier -> #edit).
 		($m actionModifier -> #smallFind).
-		($n actionModifier -> #smallFind) } do: [ :each |
-		self assert: (self shortcutOf: presenter keyed: each key) iconName equals: each value ]
+		($n actionModifier -> #smallFind) } do: [ :each | self assert: (driver iconOfShortcut: each key) equals: each value ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testTheOverviewShowsHowMuchOfEachTopicIsReviewed [
+
+	| review driver |
+	review := self reviewWithTopic.
+	review markReviewed: review changes first.
+
+	driver := OCRReviewDriver on: review.
+
+	self assert: driver shownTitle equals: 'Overview'.
+	self assert: driver overviewTopicProgress equals: #( 'Parse faster 1 / 1' ).
+	self assert: driver overviewWarnings equals: 'No warnings.'
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testTheReviewedButtonUnmarksAReviewedSelection [
 
-	| presenter |
-	presenter := self presenterOnEditableMethod.
+	| driver |
+	driver := self driverOnEditableMethod.
 
-	presenter toggleReviewed.
+	driver do: 'Reviewed'.
 
-	self assert: (self enabledToolbarLabelsOf: presenter) equals: #( 'Refresh' 'Copy review' 'Unmark' 'Browse' 'Edit' )
+	self assert: driver enabledActions equals: #( 'Browse' 'Edit' 'Finish review' 'Implementors' 'Refresh' 'Senders' 'Unmark' )
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testTheTitleHasNoWarningWhenTheBaseIsUpToDate [
 
 	self
-		assert: (OCRReviewPresenter on: self emptyReview) windowTitle
+		assert: (OCRReviewDriver on: self emptyReview) windowTitle
 		equals: 'Obscure Code Reviewer - my-project - base: abc1234 (last commit)'
 ]
 
@@ -322,26 +512,23 @@ OCRReviewPresenterTest >> testTheTitleWarnsWhenTheBaseIsStale [
 		          changes: #(  ).
 
 	self
-		assert: (OCRReviewPresenter on: review) windowTitle
+		assert: (OCRReviewDriver on: review) windowTitle
 		equals:
 		'Obscure Code Reviewer - my-project - base: d274ab5 (split from main) - WARNING: main (d274ab5) is behind origin/main (ae02d54)'
 ]
 
 { #category : 'tests' }
-OCRReviewPresenterTest >> testTheToolbarOffersTheActionsOfTheReview [
+OCRReviewPresenterTest >> testTheWindowOffersTheActionsOfTheReview [
 
 	self
-		assert: ((OCRReviewPresenter on: self emptyReview) toolbar items collect: [ :each | each label ] as: Array)
-		equals: #( 'Refresh' 'Copy review' 'Reviewed' 'Browse' 'Edit' 'Save' 'Cancel' )
+		assert: (OCRReviewDriver on: self emptyReview) actionsOnScreen
+		equals: #( 'Browse' 'Cancel' 'Edit' 'Finish review' 'Implementors' 'Refresh' 'Review all' 'Reviewed' 'Save' 'Senders' )
 ]
 
 { #category : 'tests' }
 OCRReviewPresenterTest >> testTheWindowRunsInTheReviewerApplication [
 
-	| presenter |
-	presenter := OCRReviewPresenter on: self emptyReview.
-
-	self assert: (presenter application isKindOf: OCRApplication)
+	self assert: ((OCRReviewDriver on: self emptyReview) application isKindOf: OCRApplication)
 ]
 
 { #category : 'tests' }
@@ -353,18 +540,41 @@ OCRReviewPresenterTest >> testTheWindowTitleNamesTheRepositoryAndTheBase [
 ]
 
 { #category : 'tests' }
-OCRReviewPresenterTest >> testWhileEditingTheToolbarSavesOrCancels [
+OCRReviewPresenterTest >> testTickingAGroupMarksEverythingInIt [
 
-	| presenter |
-	presenter := self presenterOnEditableMethod.
+	| review |
+	review := self reviewWithMethods: #( #a #b ).
 
-	presenter startEditing.
+	(OCRReviewDriver on: review) tick: 'Code'.
 
-	self assert: (self enabledToolbarLabelsOf: presenter) equals: #( 'Copy review' 'Save' 'Cancel' )
+	self assert: review reviewedCount equals: 2
 ]
 
 { #category : 'tests' }
-OCRReviewPresenterTest >> testWithoutSelectionTheToolbarOnlyRefreshesAndCopies [
+OCRReviewPresenterTest >> testUnmarkHasTheUndoIcon [
 
-	self assert: (self enabledToolbarLabelsOf: (OCRReviewPresenter on: self emptyReview)) equals: #( 'Refresh' 'Copy review' )
+	| driver |
+	driver := self driverOnEditableMethod.
+	self assert: (driver iconOfButton: 'Reviewed') equals: #smallOk.
+
+	driver do: 'Reviewed'.
+
+	self assert: (driver iconOfButton: 'Unmark') equals: #smallUndo
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testWhileEditingOnlySaveCancelAndFinishAreEnabled [
+
+	| driver |
+	driver := self driverOnEditableMethod.
+
+	driver do: 'Edit'.
+
+	self assert: driver enabledActions equals: #( 'Cancel' 'Finish review' 'Save' )
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testWithoutSelectionOnlyRefreshAndFinishAreEnabled [
+
+	self assert: (OCRReviewDriver on: self emptyReview) enabledActions equals: #( 'Finish review' 'Refresh' )
 ]
