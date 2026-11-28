@@ -190,12 +190,30 @@ OCRChange >> kind: aSymbol [
 ]
 
 { #category : 'displaying' }
+OCRChange >> kindColorIn: aTheme [
+	"The color of my kind letter, from aTheme so dark and custom themes work."
+
+	self isAddition ifTrue: [ ^ aTheme successTextColor ].
+	self isRemoval ifTrue: [ ^ aTheme dangerTextColor ].
+	^ aTheme warningTextColor
+]
+
+{ #category : 'displaying' }
 OCRChange >> kindDescription [
 	"How my kind is written in review feedback."
 
 	self isAddition ifTrue: [ ^ 'added' ].
 	self isRemoval ifTrue: [ ^ 'removed' ].
 	^ 'modified'
+]
+
+{ #category : 'displaying' }
+OCRChange >> kindLetter [
+	"How the review window marks my kind: A added, M modified, D deleted."
+
+	self isAddition ifTrue: [ ^ 'A' ].
+	self isRemoval ifTrue: [ ^ 'D' ].
+	^ 'M'
 ]
 
 { #category : 'displaying' }

@@ -1,7 +1,7 @@
 "
-I am the Guide tab of the review window: the review guide's Markdown (see OCRGuideParser), an Apply button, and the warnings about the guide.
+I am the editor of the review guide, opened by Edit guide… in the overview of the review window: the guide's Markdown (see OCRGuideParser), an Apply button, and the warnings about the guide.
 
-The agent gives the guide to the window when it opens it (OCRReviewPresenter class>>#onRepositoryNamed:guide:), and it shows up here. The user can also paste or edit it and click Apply: the window then shows the new guide, until it is closed. Guides are not stored anywhere.
+The agent gives the guide to the window when it opens it (OCRReviewPresenter class>>#onRepositoryNamed:guide:). The user can also paste or edit it here and click Apply: the window then shows the new guide, until it is closed. Guides are not stored anywhere.
 "
 Class {
 	#name : 'OCRGuidePresenter',
@@ -52,7 +52,7 @@ Why the changes were made.
 	applyButton := self newButton
 		               label: 'Apply';
 		               icon: (self iconNamed: #smallOk);
-		               help: 'Use this guide for the Topics tab';
+		               help: 'Use this guide for the Topics view';
 		               action: [ applyBlock value: guideText text asString ];
 		               yourself.
 	warningsLabel := self newLabel label: 'Warnings'.

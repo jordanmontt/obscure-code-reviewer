@@ -76,7 +76,7 @@ OCRReview >> changes [
 
 { #category : 'marks' }
 OCRReview >> changesInTreeOrder [
-	"My changes in the order of the Structure tree."
+	"My changes in the order of the Files tree."
 
 	| ordered |
 	ordered := OrderedCollection new.
@@ -321,7 +321,7 @@ OCRReview >> unmarkReviewed: aChange [
 
 { #category : 'marks' }
 OCRReview >> unreviewedChanges [
-	"In the order of the Structure tree."
+	"In the order of the Files tree."
 
 	^ self changesInTreeOrder reject: [ :each | self isReviewed: each ]
 ]

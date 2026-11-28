@@ -1,10 +1,9 @@
 "
-I am the right side of the review window, and the whole of the window that opens when a change is double-clicked. I show one of:
-- the diff of the selected change (base | image), with what the guide says about it above;
+I am the change selected in the review window, and the whole of the window that opens when a change is double-clicked. I show one of:
+- the diff of the selected change (base | image), with what the guide says about it in a strip above;
 - an added or removed change alone, in one read-only code pane, as it has one side only (see #showSource:titled:of:);
 - a Markdown file, rendered or as a diff (see OCRMarkdownFilePresenter);
 - a binary file (see OCRBinaryFilePresenter);
-- the explanation of the selected topic;
 - the code editor, while the reviewer edits a method by hand (see #startEditing:).
 "
 Class {
@@ -13,7 +12,6 @@ Class {
 	#instVars : [
 		'diff',
 		'editor',
-		'topicText',
 		'binaryFilePresenter',
 		'isEditing',
 		'markdownPresenter',
@@ -44,10 +42,8 @@ OCRChangeAreaPresenter >> initializePresenters [
 		        yourself.
 	sourceText := self newCode.
 	editor := self newCode.
-	topicText := self newText
-		             beNotEditable;
-		             yourself.
 	notesLabel := self newLabel
+		              addStyle: 'ocrNote';
 		              beWrap;
 		              yourself.
 	binaryFilePresenter := self instantiate: OCRBinaryFilePresenter.
@@ -93,7 +89,7 @@ OCRChangeAreaPresenter >> showBinaryFile: aBinaryFileChange [
 
 { #category : 'showing' }
 OCRChangeAreaPresenter >> showChange: aChange comparedWith: aBaseSource notes: aString [
-	"aString is what the guide says about the change alone; it goes above the change, on as many lines as it needs."
+	"aString is what the guide says about the change alone; it goes above the change, tinted, on as many lines as it needs."
 
 	self layout removeAll.
 	aString ifNotEmpty: [
@@ -161,13 +157,6 @@ OCRChangeAreaPresenter >> showSource: aString titled: aTitle of: aChange [
 	self layout
 		add: sourceTitleStrip expand: false;
 		add: sourceText
-]
-
-{ #category : 'showing' }
-OCRChangeAreaPresenter >> showTopic: aTopic [
-
-	topicText text: aTopic explanation.
-	self show: topicText
 ]
 
 { #category : 'testing' }

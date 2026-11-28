@@ -1,6 +1,6 @@
 # Obscure Code Reviewer — Design
 
-A small Spec 2 application for Pharo 15 to review code changes (typically written by an agent) inside the image, where there are no files to diff.
+A small Spec 2 application for Pharo 15 (it relies on Spec 15) to review code changes (typically written by an agent) inside the image, where there are no files to diff.
 
 ## What a review is
 
@@ -34,7 +34,7 @@ Not supported: reviewing commit by commit. Picking an arbitrary base commit may 
 
 ## Organization of changes
 
-### Structural tab (always available)
+### Files view (always available)
 
 Follows Iceberg's tree shape, without the `src` directory level, split into sections:
 
@@ -43,10 +43,11 @@ Follows Iceberg's tree shape, without the `src` directory level, split into sect
 - icons show what each node is: section, package, class, extension, method
 - extension methods under their own node in the package
 - a changed class definition or class comment is the class node itself
-- each item is marked as added (`+`), modified (`~`), or removed (`-`); added and removed items are also colored with the current theme's success and danger text colors, so dark and custom themes work
-- a commented node is **bold** and marked `[commented]`
+- each change is marked **A** (added), **M** (modified) or **D** (deleted), colored with the current theme's success, warning and danger text colors, so dark and custom themes work; a deleted change is also struck through
+- a commented change is **bold** and says `commented`; a group says how many of its changes are reviewed (`3 / 7`)
+- each row has a checkbox: ticking it marks everything under it as reviewed
 
-### Topics tab (optional, needs a review guide)
+### Topics view (optional, needs a review guide)
 
 The agent groups changes by what they do (e.g. "Optimize parsing"), across packages. The guide is Markdown (`OCRGuideParser`):
 
@@ -69,53 +70,64 @@ Why: avoid re-scanning the stream for every token.
 - README.md
 ```
 
-- Text before the line `Topics:` is the **pull request description**, as written: an optional first line `Title: …`, then the body (see "Pull request tab"). Its `#` headings and `- ` lines are part of the description, not topics or changes, so it can follow a pull request style with `# Goal` and `# Main changes`. Without a `Topics:` line, the text before the first topic is the description.
+- Text before the line `Topics:` is the **pull request description**, as written: an optional first line `Title: …`, then the body (see "Pull request"). Its `#` headings and `- ` lines are part of the description, not topics or changes, so it can follow a pull request style with `# Goal` and `# Main changes`. Without a `Topics:` line, the text before the first topic is the description.
 - `# ` headings are topics; the other lines below are the explanation; `- ` lines are changes.
 - A change is written as in the copied review: `Foo>>#bar`, `Foo class>>#bar`, `Foo` for a class definition, `Foo class` for a class-side definition, and a path for a file. Backquotes are ignored (put a path with spaces between them) and `Foo>>bar` is read as `Foo>>#bar`.
 - After the reference, the rest of the line is **why that change** was made; it is shown above its diff.
 - `<- Other>>#ref` after the reference says the code was **moved or extracted** from that change: the diff then compares the new code with the old code of `Other>>#ref`, and says so above the diff.
 - A change belongs to exactly one topic. If listed twice, the first topic keeps it.
 - Changes not mentioned go to **"Not covered by any topic"**.
-- Problems (a change in two topics, a change not in the diff, code moved from a change not in the diff) appear as warnings in the Guide tab and never block the review.
-- Selecting a topic shows its explanation in the diff area; a topic can be commented like a change.
+- Problems (a change in two topics, a change not in the diff, code moved from a change not in the diff) appear as warnings in the Overview and never block the review.
+- Selecting a topic shows its explanation and its changes, each with its note and whether it is reviewed or commented (`OCRTopicPresenter`); double-clicking one selects it. A topic can be commented like a change.
+- The title of a change says which topic it is in.
 - The guide is not stored anywhere: it belongs to the review window.
   - The agent gives it when it opens the window: `(OCRReviewPresenter onRepositoryNamed: 'x' guide: (OCRReviewGuide fromText: '…')) open`.
-  - The user can paste or edit it in the **Guide** tab, then **Apply**, which refreshes with the new guide.
+  - The user can paste or edit it with **Edit guide…** in the Overview, then **Apply**, which refreshes with the new guide.
 - Refresh keeps the window's guide; closing the window forgets it.
-- The tool works fully without a guide: the Topics tab then has only "Not covered by any topic".
+- The tool works fully without a guide: the Topics view then has only "Not covered by any topic".
 
-### Pull request tab
+### Pull request
 
 The title and body of the pull request the changes will become (`OCRPullRequest`). The tool does not open pull requests: the agent does, from this text, following its own pull request style (see the `pharo-review` skill).
 
-- The agent drafts them at the top of the guide; the reviewer edits them here.
+- The agent drafts them at the top of the guide; the reviewer edits them in the Overview.
 - Edits are kept in memory like comments, and survive a refresh (the reviewer's version wins over a new draft).
 - Copy review includes them only when the reviewer changed the draft.
 
 ## Window
 
+The window is meant to be simple, not an IDE: one thing selected at a time, and only the actions that apply to it, next to it. Screenshots are in `docs/`.
+
 ```
-┌ Toolbar: [Refresh] [Copy review] [Reviewed] [Browse] [Edit] [Save] [Cancel] ┐
-├[Structure][Topics][Guide][Pull request]┬ Why / moved from (when the guide says) ┤
-│ Package                                ├ Diff: base │ image (or topic text) ──┤
-│  Class                   ├ Comment on selected change or topic ────┤
-│   + method               │                                         │
-├ General comment (whole review) ────────────────────────────────────┤
+┌ repository, base         12 of 40 reviewed, 5 comments ▓▓░░  [Review all] [Refresh] [Finish review] ┐
+├ [Files][Topics] ──────────┬ Code › MyPackage › MyClass     Topic: …                                   ┤
+│ Overview                  │ MyClass>>#bar  modified           [Browse] [More ▾] [Reviewed]           │
+│ ▾ Code            7 / 24 ☐│ Why / moved from (when the guide says)                                   │
+│   ▾ MyPackage            ☐│ Diff: base │ image   (or the topic, or the overview)                     │
+│      M bar   commented   ☑│ Your comment on MyClass>>#bar                                            │
+├ Cmd+R reviewed & next   Cmd+A select all   Cmd+B browse   Cmd+E edit   Cmd+M impl.   Cmd+N senders ──┤
 ```
 
-- The toolbar, the window's shortcuts and the trees' right-click menu come from the same actions, each written once in `OCRReviewPresenter` (`refreshAction`, `reviewedAction`, `editAction`, …): the toolbar is filled from them (`SpToolbarPresenter>>#fillWith:`). The Reviewed button keeps its icon when it reads Unmark: Spec actions have a dynamic name, not a dynamic icon.
-- With nothing selected, the window asks an empty node (`OCRReviewTabsPresenter>>#selectedNode`), which has nothing to show, comment, browse or mark.
+- **Header** (`OCRReviewHeaderPresenter`, then the buttons): the repository, what it is compared with (with the warning when the base may be wrong), the progress, **Review all**, **Refresh** and **Finish review**.
+- **Sidebar** (`OCRReviewSidebarPresenter`): the Files and Topics trees behind a switch; both start with the **Overview** row (`OCROverviewNode`), and are expanded each time they are shown (a tree never on screen has nothing expanded yet). The selection is the one of the tree shown.
+- **Several rows** can be selected; Cmd+A (or **Select all** in the right-click menu) selects them all. The selection is then a node grouping them, titled with how many changes they hold (e.g. `279 changes selected`): Reviewed marks them all, and it cannot be commented. In a tree with multiple selection, Spec's `selectItem:` and `selectItems:` add to the selection row by row; the window selects one row with `selectPaths:`, which replaces it (`OCRReviewSidebarPresenter>>#selectOnly:`).
+- **The selection:** its title, under the groups it is in, and the buttons that act on it: **Browse**, **More** (Edit, Implementors, Senders) and **Reviewed**. Below, the change (`OCRChangeAreaPresenter`), the topic (`OCRTopicPresenter`) or the overview (`OCROverviewPresenter`: pull request, progress by topic, guide warnings and **Edit guide…**, base); then the comment on a change or topic.
+- **Finish review** (`OCRFinishReviewPresenter`, a dialog): what is reviewed and commented, what is not reviewed yet, the general comment, **Keep reviewing** and **Copy review**.
+- The buttons, the window's shortcuts and the trees' right-click menu come from the same actions, each written once in `OCRReviewPresenter` (`refreshAction`, `reviewedAction`, `editAction`, …). The buttons are never hidden, only disabled: Morphic does not lay out again a widget hidden then shown. For the same reason the selection's content is one presenter whose children are replaced, and **Save** and **Cancel** come with the editor, above it. When the Reviewed button reads Unmark, its icon is the undo icon, in the menu too (`dynamicIconName:`, from pharo-spec/Spec#2004).
+- With nothing selected, the window asks an empty node (`OCRReviewSidebarPresenter>>#selectedNode`), which has nothing to show, comment, browse or mark.
 - Side-by-side diff (`SpDiffPresenter`), old on the left, new on the right.
 - An added or removed change has one side only, so it is shown alone, in one read-only code pane titled **Added** or **Removed**. A method is highlighted for its class, and the protocol line Iceberg writes above it (`"accessing"`) moves into the title (`Added — protocol: accessing`); in a diff that line stays, as it shows a change of protocol. Class definitions (which carry their comment below) and files are not highlighted. Code moved from another change (`<-` in the guide) keeps its diff.
 - The code panes and the comment boxes offer Pharo's code search on the selection: right-click → **Code search**, Cmd+M for implementors, Cmd+N for senders. The comment boxes are code panes without highlighting, line numbers or smart characters, so they read as plain text. Each review runs in its own application, an `OCRApplication` (see `OCRReviewPresenter class>>#currentApplication`); a review opened from the picker runs in the picker's. Spec runs a code pane's commands in the pane's application, so the browsers they open run in it too: it is a Pharo tool application (a subclass of `StPharoApplication`) because they fail in Spec's default null application. It is never `run`, which would make it the Pharo IDE's application and close its windows.
 - Double-clicking a change in a tree opens it alone in its own large, read-only window (an `OCRChangeAreaPresenter`), titled with its reference: for long lines, which the diff does not wrap, and long methods. Several can stay open side by side.
-- Items with a comment are bold and marked `[commented]` in the tree.
-- Each tab explains itself when the mouse is over it.
+- Comments are written in `OCRCommentPresenter` panes.
 
 ## Reviewed marks
 
-- **Reviewed** marks the selected change as reviewed, or every change under the selected node (package, class, topic, section). When everything selected is already reviewed, the button reads **Unmark** and unmarks it.
-- A node shows `[reviewed]` when every change under it is reviewed.
+- **Reviewed** (Cmd+R) marks the selected change as reviewed and selects the next change not reviewed, in the order of the tree shown, starting over at the top. On a group or a topic it marks every change under it. When everything selected is already reviewed, the button reads **Unmark** and unmarks it.
+- With several rows selected (Cmd+A selects them all), Reviewed marks every change they hold.
+- **Review all** marks every change of the review; it is disabled once everything is reviewed.
+- The checkbox of a row does the same for that row, without moving the selection.
+- A group shows how many of its changes are reviewed, and its checkbox is ticked when they all are.
 - Marks are kept in memory, like comments. A refresh keeps the mark of a change only while its code is exactly the same: changed code must be reviewed again.
 
 ## Editing by hand
@@ -162,7 +174,7 @@ Title: <title>
 - Foo>>#baz (added)
 ```
 
-Order: the warning only when the base may be wrong; the progress line and the "Not reviewed yet" list only when at least one change is marked; the pull request only when the reviewer edited it; then the general comment, topics in the guide's order, and changes in Structure tree order.
+Order: the warning only when the base may be wrong; the progress line and the "Not reviewed yet" list only when at least one change is marked; the pull request only when the reviewer edited it; then the general comment, topics in the guide's order, and changes in Files tree order.
 
 ## Opening the tool
 
@@ -180,7 +192,7 @@ Order: the warning only when the base may be wrong; the progress line and the "N
   - trees: `OCRStructuralTreeBuilder`, `OCRTopicTreeBuilder`, and the nodes `OCRContainerNode`, `OCRChangeNode`, `OCRTopicNode`;
   - output: `OCRFeedbackWriter` (Copy review);
   - Iceberg: `OCRIcebergReader` only;
-  - UI: `OCRReviewPresenter` (the window and its actions), made of a toolbar, `OCRReviewTabsPresenter` (the four tabs, with `OCRGuidePresenter`, `OCRPullRequestPresenter`, and notebook pages with hover help) and `OCRChangeAreaPresenter` (diff, notes, editor, topic text, `OCRMarkdownFilePresenter`, `OCRBinaryFilePresenter`); `OCRPickerPresenter`.
+  - UI: `OCRReviewPresenter` (the window and its actions), made of `OCRReviewHeaderPresenter` (repository, base, progress), `OCRReviewSidebarPresenter` (the Files and Topics trees), `OCRChangeAreaPresenter` (diff, notes, editor, `OCRMarkdownFilePresenter`, `OCRBinaryFilePresenter`), `OCRTopicPresenter`, `OCROverviewPresenter` (with `OCRPullRequestPresenter`, and `OCRGuidePresenter` in its own window) and `OCRCommentPresenter`; `OCRFinishReviewPresenter`; `OCRPickerPresenter`. `OCRStyleContributor` holds the window's styles, all from the theme's colors.
 - Class prefix: `OCR`.
 - The tool uses its own small model classes (`OCRChange`, `OCRReview`, …). A single reader class knows Iceberg's API and turns an Iceberg diff into `OCRChange`s; it is kept as small as possible.
 
@@ -188,6 +200,7 @@ Order: the warning only when the base may be wrong; the progress line and the "N
 
 - Code must stay understandable and editable by humans.
 - Model separate from Spec presenters; presenters stay thin.
+- The window is tested as a reviewer uses it, through `OCRReviewDriver`: select a change, click a button by its name, comment, read what is shown. The tests never name a presenter or say where a button sits, so a new layout changes the driver, not the tests.
 - SUnit tests for the model, built from hand-made `OCRMethodChange`s, `OCRClassChange`s and `OCRFileChange`s; the builders the tests share are in `OCRTestCase`. Iceberg and git themselves are not tested: `OCRIcebergReader` is tested only where it works on plain files (`OCRIcebergReaderTest`, with in-memory stubs).
 - No nil as a value: different cases are different classes (`OCRMethodChange` / `OCRClassChange`, `OCRContainerNode` / `OCRChangeNode`).
 - Small methods, intention-revealing names, a class comment on every class, no metaprogramming.
@@ -205,6 +218,7 @@ Order: the warning only when the base may be wrong; the progress line and the "N
 8. Files and pull request: non-code files and packages not loaded, the Pull request tab, why on a single change (ideas from the CodeReview tool, `github://guillep/pharo-review`).
 9. Reviewed marks, moved-code links, line counts (removed later: unused), "Not reviewed yet" in Copy review (also from CodeReview).
 10. README for Pharo developers: clear and straight to the point, including the branch caveat.
+11. A simpler window: a header with the progress, Files | Topics instead of four tabs, only the actions of the selection next to it, Reviewed goes to the next change, an Overview, and a Finish review dialog with the general comment. The window tests go through a driver first, so they survive the new layout.
 
 Not planned: a "Create pull request" button. Opening a pull request needs the agent's PR style and the reviewer's go-ahead, which live in the agent skills, not in the image.
 
