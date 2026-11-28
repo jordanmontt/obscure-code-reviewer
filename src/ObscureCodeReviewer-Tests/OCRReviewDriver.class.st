@@ -67,6 +67,12 @@ OCRReviewDriver >> click: aReference [
 	presenter selectItemReferenced: aReference
 ]
 
+{ #category : 'window' }
+OCRReviewDriver >> closeWindow [
+
+	window ifNotNil: [ window close ]
+]
+
 { #category : 'selecting' }
 OCRReviewDriver >> comment: aString [
 	"Type aString in the comment pane of the selection."
@@ -140,6 +146,24 @@ OCRReviewDriver >> isShowingAChange [
 	^ presenter hasSelectedChange
 ]
 
+{ #category : 'window' }
+OCRReviewDriver >> liveDiffWidgets [
+	"How many diff widgets of the window are still in memory, shown or not. Morphic lets go of removed widgets when the UI process runs: it gets a moment first."
+
+	(Delay forMilliseconds: 300) wait.
+	Smalltalk garbageCollect.
+	^ SpMorphicDiffAdapter allInstances count: [ :each | each presenter owner == presenter changeArea ]
+]
+
+{ #category : 'window' }
+OCRReviewDriver >> liveTreeWidgets [
+	"How many tree widgets of the window are still in memory, shown or not (see #liveDiffWidgets)."
+
+	(Delay forMilliseconds: 300) wait.
+	Smalltalk garbageCollect.
+	^ SpMorphicTreeTableAdapter allInstances count: [ :each | presenter sidebar trees includes: each presenter ]
+]
+
 { #category : 'actions' }
 OCRReviewDriver >> menuShortcuts [
 	"The keys of the actions in the right-click menu of the changes."
@@ -152,6 +176,13 @@ OCRReviewDriver >> nextReview: aReview [
 	"The review Refresh and Apply recompute from the image."
 
 	presenter nextReview: aReview
+]
+
+{ #category : 'window' }
+OCRReviewDriver >> openWindow [
+	"Open the window for real: the tests of what Morphic keeps alive need its widgets. Close it with #closeWindow."
+
+	window := presenter open
 ]
 
 { #category : 'reading' }
@@ -199,6 +230,12 @@ OCRReviewDriver >> setReview: aReview [
 OCRReviewDriver >> shortcutKeyed: aKeyCombination [
 
 	^ presenter actions allCommands detect: [ :each | each shortcutKey = aKeyCombination ]
+]
+
+{ #category : 'selecting' }
+OCRReviewDriver >> showFilesView [
+
+	presenter sidebar showFiles
 ]
 
 { #category : 'selecting' }

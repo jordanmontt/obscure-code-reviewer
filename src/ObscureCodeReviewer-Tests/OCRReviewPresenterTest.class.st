@@ -317,6 +317,21 @@ OCRReviewPresenterTest >> testSelectAllThenReviewedMarksEveryChange [
 ]
 
 { #category : 'tests' }
+OCRReviewPresenterTest >> testSelectingChangesOneAfterAnotherKeepsNoOldWidgets [
+	"Each selection used to leave its diff widget in memory, and every later selection got slower (see OCRReviewPresenter>>#showContent:)."
+
+	| driver |
+	driver := OCRReviewDriver on: (self reviewWithMethods: #( #a #b )).
+	driver openWindow.
+	[
+		10 timesRepeat: [
+			driver click: 'OCRReviewPresenterTest>>#a'.
+			driver click: 'OCRReviewPresenterTest>>#b' ].
+
+		self assert: driver liveDiffWidgets <= 1 ] ensure: [ driver closeWindow ]
+]
+
+{ #category : 'tests' }
 OCRReviewPresenterTest >> testSelectingSeveralRowsSaysHowManyChanges [
 
 	| driver |
@@ -341,6 +356,47 @@ OCRReviewPresenterTest >> testShortcutsAreDisabledLikeTheirButtonsWhenNothingIsS
 		$e actionModifier.
 		$m actionModifier.
 		$n actionModifier } do: [ :each | self deny: (driver canPress: each) ]
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSwitchingToFilesFromATopicShowsTheOverview [
+
+	| driver |
+	driver := OCRReviewDriver on: self reviewWithTopic.
+	driver showTopicsView.
+	driver click: 'Topic: Parse faster'.
+
+	driver showFilesView.
+
+	self assert: driver isSelectingInFiles.
+	self assert: driver shownTitle equals: 'Overview'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSwitchingToTopicsKeepsTheSelectedChange [
+
+	| driver |
+	driver := OCRReviewDriver on: self reviewWithTopic.
+	driver click: 'OCRReviewPresenterTest>>#a'.
+
+	driver showTopicsView.
+
+	self deny: driver isSelectingInFiles.
+	self assert: driver selectedChangeReference equals: 'OCRReviewPresenterTest>>#a'
+]
+
+{ #category : 'tests' }
+OCRReviewPresenterTest >> testSwitchingViewsManyTimesKeepsNoOldWidgets [
+
+	| driver |
+	driver := OCRReviewDriver on: self reviewWithTopic.
+	driver openWindow.
+	[
+		5 timesRepeat: [
+			driver showTopicsView.
+			driver showFilesView ].
+
+		self assert: driver liveTreeWidgets <= 2 ] ensure: [ driver closeWindow ]
 ]
 
 { #category : 'tests' }

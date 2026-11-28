@@ -1,22 +1,21 @@
 "
-I am the left side of the review window: a Files | Topics switch and the tree it shows. Both trees start with the Overview row.
+I am the left side of the review window: the Files and Topics trees, as the two pages of a notebook, which builds each tree once and keeps it. Both trees start with the Overview row.
 
 Each row shows what it is (icon), whether it was added, modified or removed (A, M, D in color), its name (bold when commented, struck through when removed), how much is reviewed below it or that it is commented, and a checkbox: ticking it marks everything below as reviewed.
 
-The selection is the one of the tree shown.
+The selection is the one of the tree shown. Several rows can be selected; Cmd+A selects them all.
 "
 Class {
 	#name : 'OCRReviewSidebarPresenter',
 	#superclass : 'SpPresenter',
 	#instVars : [
 		'review',
-		'filesButton',
-		'topicsButton',
 		'filesTree',
 		'topicsTree',
 		'activeTree',
 		'selectionBlock',
-		'markBlock'
+		'markBlock',
+		'notebook'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -37,13 +36,7 @@ OCRReviewSidebarPresenter >> changesInOrder [
 OCRReviewSidebarPresenter >> defaultLayout [
 
 	^ SpBoxLayout newTopToBottom
-		  spacing: 4;
-		  add: (SpBoxLayout newLeftToRight
-			   add: filesButton;
-			   add: topicsButton;
-			   yourself)
-		  expand: false;
-		  add: activeTree;
+		  add: notebook;
 		  yourself
 ]
 
@@ -51,8 +44,7 @@ OCRReviewSidebarPresenter >> defaultLayout [
 OCRReviewSidebarPresenter >> enableSelecting: aBoolean [
 	"While the reviewer edits a method, the selection cannot change."
 
-	filesButton enabled: aBoolean.
-	topicsButton enabled: aBoolean.
+	notebook enabled: aBoolean.
 	filesTree enabled: aBoolean.
 	topicsTree enabled: aBoolean
 ]
@@ -85,24 +77,26 @@ OCRReviewSidebarPresenter >> infoFor: aNode [
 
 { #category : 'initialization' }
 OCRReviewSidebarPresenter >> initializePresenters [
+	"The two trees are the pages of a notebook: it builds each tree once and keeps it, so switching is fast and keeps no old widget in memory, which taking a tree off an open window and adding it back did (see SpPresenter>>#ocrReleaseWidgets)."
 
 	filesTree := self newChangesTree.
 	topicsTree := self newChangesTree.
 	activeTree := filesTree.
 	selectionBlock := [ ].
 	markBlock := [ :node :aBoolean |  ].
-	filesButton := self newToggleButton
-		               label: 'Files';
-		               help: 'Every change, by section (Code, Tests, Baseline, Files), package and class';
-		               state: true;
-		               whenActivatedDo: [ self showTree: filesTree ];
-		               yourself.
-	topicsButton := self newToggleButton
-		                label: 'Topics';
-		                help: 'The changes grouped by purpose, from the agent''s review guide';
-		                whenActivatedDo: [ self showTree: topicsTree ];
-		                yourself.
-	filesButton associatedToggleButtons: { topicsButton }.
+	notebook := self newNotebook
+		            addPage:
+			            (self
+				             pageTitled: 'Files'
+				             help: 'Every change, by section (Code, Tests, Baseline, Files), package and class'
+				             tree: filesTree);
+		            addPage:
+			            (self pageTitled: 'Topics' help: 'The changes grouped by purpose, from the agent''s review guide' tree: topicsTree);
+		            yourself.
+	notebook whenSelectedPageChangedDo: [
+		self showTree: (notebook selectedPageIndex = 1
+			 ifTrue: [ filesTree ]
+			 ifFalse: [ topicsTree ]) ].
 	self showReview: review
 ]
 
@@ -196,6 +190,14 @@ OCRReviewSidebarPresenter >> nodesDo: aBlock [
 	activeTree roots do: [ :root | root withAllChildrenDo: aBlock ]
 ]
 
+{ #category : 'initialization' }
+OCRReviewSidebarPresenter >> pageTitled: aTitle help: aString tree: aTree [
+
+	^ (SpNotebookPage title: aTitle provider: [ aTree ])
+		  help: aString;
+		  yourself
+]
+
 { #category : 'selection' }
 OCRReviewSidebarPresenter >> path: aPath to: aNode from: aRoot [
 	"The names from aRoot down to aNode, or nil when aNode is not below aRoot."
@@ -239,6 +241,15 @@ OCRReviewSidebarPresenter >> selectAll [
 	activeTree selectAll
 ]
 
+{ #category : 'showing' }
+OCRReviewSidebarPresenter >> selectCounterpartOf: aNode [
+	"Select the row of the tree shown that stands for the same change or topic as aNode, or else the Overview."
+
+	aNode isCommentable ifTrue: [
+		self nodesDo: [ :each | (each isCommentable and: [ each commentable == aNode commentable ]) ifTrue: [ ^ self selectOnly: each ] ] ].
+	self selectOverview
+]
+
 { #category : 'selection' }
 OCRReviewSidebarPresenter >> selectItemReferenced: aReference [
 	"Select only the change or topic written aReference, when it is in the tree shown."
@@ -280,8 +291,7 @@ OCRReviewSidebarPresenter >> setModelBeforeInitialization: aReview [
 { #category : 'selection' }
 OCRReviewSidebarPresenter >> showFiles [
 
-	filesButton state: true.
-	self showTree: filesTree
+	notebook selectPageIndex: 1
 ]
 
 { #category : 'showing' }
@@ -300,18 +310,18 @@ OCRReviewSidebarPresenter >> showReview: aReview [
 { #category : 'selection' }
 OCRReviewSidebarPresenter >> showTopics [
 
-	topicsButton state: true.
-	self showTree: topicsTree
+	notebook selectPageIndex: 2
 ]
 
 { #category : 'showing' }
 OCRReviewSidebarPresenter >> showTree: aTree [
-	"Expanded each time it is shown: a tree that was never on screen has nothing expanded yet."
+	"The notebook shows aTree, expanded by #showReview: (which waits until the tree is built). When nothing is selected in it, the change selected in the other tree stays selected, or else the Overview: never an empty page."
 
+	| previous |
 	aTree == activeTree ifTrue: [ ^ self ].
-	self layout replace: activeTree with: aTree.
+	previous := self selectedNode.
 	activeTree := aTree.
-	aTree expandAll.
+	aTree selectedItems ifEmpty: [ ^ self selectCounterpartOf: previous ].
 	selectionBlock value
 ]
 
@@ -336,6 +346,14 @@ OCRReviewSidebarPresenter >> treeActions: anActionGroup [
 
 	filesTree actions: anActionGroup.
 	topicsTree actions: anActionGroup
+]
+
+{ #category : 'accessing' }
+OCRReviewSidebarPresenter >> trees [
+
+	^ {
+		  filesTree.
+		  topicsTree }
 ]
 
 { #category : 'events' }

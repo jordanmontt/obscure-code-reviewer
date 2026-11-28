@@ -168,6 +168,12 @@ OCRReviewPresenter >> cancelAction [
 		  yourself
 ]
 
+{ #category : 'testing' }
+OCRReviewPresenter >> changeArea [
+
+	^ changeArea
+]
+
 { #category : 'actions' }
 OCRReviewPresenter >> commentChanged: aString [
 
@@ -705,22 +711,30 @@ OCRReviewPresenter >> showChange: aChange [
 
 { #category : 'showing' }
 OCRReviewPresenter >> showContent: aPresenter [
-	"aPresenter alone, without a comment.
-	Spec cannot add a layout to the layout of an open window, only presenters: the content is one presenter whose children are replaced. Morphic does not lay out again a presenter hidden then shown, so nothing is hidden."
+	"aPresenter alone, without a comment."
 
-	content layout
-		removeAll;
-		add: aPresenter
+	self showContentMadeOf: { aPresenter }
+]
+
+{ #category : 'showing' }
+OCRReviewPresenter >> showContentMadeOf: somePresenters [
+	"Spec cannot add a layout to the layout of an open window, only presenters: the content is one presenter whose children are replaced, only when they change. Adding a presenter again builds all its widgets again (see SpBoxLayout>>#ocrRemoveAll). Morphic does not lay out again a presenter hidden then shown, so nothing is hidden."
+
+	content layout children asArray = somePresenters ifTrue: [ ^ self ].
+	content layout ocrRemoveAll.
+	somePresenters do: [ :each |
+		each == commentBox
+			ifTrue: [ content layout add: each height: 110 ]
+			ifFalse: [ content layout add: each ] ]
 ]
 
 { #category : 'showing' }
 OCRReviewPresenter >> showContentWithComment: aPresenter [
 	"aPresenter, with the comment on the selection below it."
 
-	content layout
-		removeAll;
-		add: aPresenter;
-		add: commentBox height: 110
+	self showContentMadeOf: {
+		aPresenter.
+		commentBox }
 ]
 
 { #category : 'showing' }
@@ -739,10 +753,13 @@ OCRReviewPresenter >> showKindOf: aChange [
 
 { #category : 'showing' }
 OCRReviewPresenter >> showNothing [
-	"A section, a package or a class whose definition did not change: nothing to show but where it is."
+	"A section, a package, a class whose definition did not change, or several rows: nothing to compare, but where it is and what Reviewed does with it."
 
-	self showTitle: sidebar selectedNode name kicker: (' › ' join: (sidebar pathOf: sidebar selectedNode)).
-	changeArea showNothing.
+	| node |
+	node := sidebar selectedNode.
+	self showTitle: node name kicker: (' › ' join: (sidebar pathOf: node)).
+	changeArea showMessage:
+		(node changesBelow ifEmpty: [ 'Select a change to see what changed.' ] ifNotEmpty: [ 'Reviewed marks every change in it.' ]).
 	self showContent: changeArea.
 	self hideComment
 ]
@@ -826,7 +843,7 @@ OCRReviewPresenter >> startEditing [
 
 	changeArea startEditing: self selectedChange methodInImage.
 	content layout
-		removeAll;
+		ocrRemoveAll;
 		add: editBar expand: false;
 		add: changeArea.
 	self enableReviewing: false

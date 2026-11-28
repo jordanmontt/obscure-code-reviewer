@@ -18,7 +18,8 @@ Class {
 		'sourceText',
 		'sourceTitle',
 		'notesLabel',
-		'sourceTitleStrip'
+		'sourceTitleStrip',
+		'messageLabel'
 	],
 	#category : 'ObscureCodeReviewer-UI',
 	#package : 'ObscureCodeReviewer',
@@ -46,6 +47,9 @@ OCRChangeAreaPresenter >> initializePresenters [
 		              addStyle: 'ocrNote';
 		              beWrap;
 		              yourself.
+	messageLabel := self newLabel
+		                addStyle: 'ocrMuted';
+		                yourself.
 	binaryFilePresenter := self instantiate: OCRBinaryFilePresenter.
 	markdownPresenter := self instantiate: OCRMarkdownFilePresenter.
 	isEditing := false.
@@ -75,26 +79,21 @@ OCRChangeAreaPresenter >> markdownPresenter [
 { #category : 'showing' }
 OCRChangeAreaPresenter >> show: aPresenter [
 
-	self layout
-		removeAll;
-		add: aPresenter
+	self showPresenters: { aPresenter }
 ]
 
 { #category : 'showing' }
 OCRChangeAreaPresenter >> showBinaryFile: aBinaryFileChange [
 
 	binaryFilePresenter showFile: aBinaryFileChange.
-	self layout add: binaryFilePresenter
+	self show: binaryFilePresenter
 ]
 
 { #category : 'showing' }
 OCRChangeAreaPresenter >> showChange: aChange comparedWith: aBaseSource notes: aString [
 	"aString is what the guide says about the change alone; it goes above the change, tinted, on as many lines as it needs."
 
-	self layout removeAll.
-	aString ifNotEmpty: [
-		notesLabel label: aString.
-		self layout add: notesLabel expand: false ].
+	notesLabel label: aString.
 	aChange showContentsIn: self comparedWith: aBaseSource
 ]
 
@@ -102,7 +101,7 @@ OCRChangeAreaPresenter >> showChange: aChange comparedWith: aBaseSource notes: a
 OCRChangeAreaPresenter >> showDiffFrom: anOldSource to: aNewSource [
 	"Both sides are cleared first, as Iceberg does, so the diff never mixes two changes."
 
-	self layout add: diff.
+	self show: diff.
 	diff
 		leftText: '';
 		rightText: ''.
@@ -115,23 +114,45 @@ OCRChangeAreaPresenter >> showDiffFrom: anOldSource to: aNewSource [
 OCRChangeAreaPresenter >> showMarkdown: aSource aloneTitled: aTitle [
 
 	markdownPresenter show: aSource aloneTitled: aTitle.
-	self layout add: markdownPresenter
+	self show: markdownPresenter
 ]
 
 { #category : 'showing' }
 OCRChangeAreaPresenter >> showMarkdownFrom: anOldSource to: aNewSource [
 
 	markdownPresenter showFrom: anOldSource to: aNewSource.
-	self layout add: markdownPresenter
+	self show: markdownPresenter
+]
+
+{ #category : 'showing' }
+OCRChangeAreaPresenter >> showMessage: aString [
+	"Nothing to compare: a group, several rows, or nothing selected."
+
+	notesLabel label: ''.
+	messageLabel label: aString.
+	self show: messageLabel
 ]
 
 { #category : 'showing' }
 OCRChangeAreaPresenter >> showNothing [
 
-	self show: diff.
-	diff
-		leftText: '';
-		rightText: ''
+	self showMessage: 'Select a change to see what changed.'
+]
+
+{ #category : 'showing' }
+OCRChangeAreaPresenter >> showPresenters: somePresenters [
+	"Show somePresenters, below the notes when the guide has some. The children are replaced only when they change: a change of the same kind as the one shown only changes texts. Adding a presenter again to an open window builds its widget again (see SpBoxLayout>>#ocrRemoveAll)."
+
+	| wanted |
+	wanted := notesLabel label isEmpty
+		          ifTrue: [ somePresenters asArray ]
+		          ifFalse: [ { notesLabel } , somePresenters ].
+	self layout children asArray = wanted ifTrue: [ ^ self ].
+	self layout ocrRemoveAll.
+	wanted do: [ :each |
+		(each == notesLabel or: [ each == sourceTitleStrip ])
+			ifTrue: [ self layout add: each expand: false ]
+			ifFalse: [ self layout add: each ] ]
 ]
 
 { #category : 'showing' }
@@ -146,17 +167,20 @@ OCRChangeAreaPresenter >> showSource: aString titled: aTitle of: aChange [
 	sourceTitleStrip := self newPresenter
 		                    addStyle: 'ocrSourceTitle';
 		                    layout: (SpBoxLayout newLeftToRight
-				                     add: sourceTitle expand: true fill: true padding: 5;
-				                     yourself);
+			                     add: sourceTitle
+			                     expand: true
+			                     fill: true
+			                     padding: 5;
+			                     yourself);
 		                    yourself.
 	sourceText := self newCode
 		              beNotEditable;
 		              yourself.
 	aChange styleSource: sourceText.
 	sourceText text: aString.
-	self layout
-		add: sourceTitleStrip expand: false;
-		add: sourceText
+	self showPresenters: {
+		sourceTitleStrip.
+		sourceText }
 ]
 
 { #category : 'testing' }
@@ -193,6 +217,7 @@ OCRChangeAreaPresenter >> startEditing: aMethod [
 	editor
 		beForMethod: aMethod;
 		text: aMethod sourceCode.
+	notesLabel label: ''.
 	self show: editor.
 	isEditing := true
 ]
